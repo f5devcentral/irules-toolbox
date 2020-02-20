@@ -2,6 +2,10 @@
 # author: Simon Kowallik
 # version: 1.3
 #
+# This iRule requires BIG-IP v12 or higher to use the HTTP::cookie attribute command. 
+# Check https://github.com/f5devcentral/irules-toolbox/tree/master/security/http/cookies for a v11 iRule 
+#    that doesn't use HTTP::cookie attribute (but uses more CPU cycles) 
+#
 # History: version - author - description
 #	 1.0 - Simon Kowallik - initial version 
 #	 1.1 - Aaron Hooley - updated to add support for setting SameSite to Strict|Lax|None for BIG-IP and app cookies in Set-Cookie headers
