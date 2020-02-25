@@ -9,7 +9,7 @@
 # History: version - author - description
 #	 1.0 - Simon Kowallik - initial version 
 #	 1.1 - Aaron Hooley - updated to add support for setting SameSite to Strict|Lax|None for BIG-IP and app cookies in Set-Cookie headers
-#											- Add option to remove SameSite=None cookies for incompatible browsers
+#			- Add option to remove SameSite=None cookies for incompatible browsers
 #	 1.2 - Aaron Hooley - Added option to rewrite all cookies without naming them explicitly or with prefixes
 #	 1.3 - Aaron Hooley - set samesite_compatible to 0 by default instead of a null string 
 #
@@ -38,7 +38,7 @@ proc checkSameSiteCompatible {user_agent} {
 	# Procedure to check if a user-agent supports SameSite=None on cookies
 	#
 	# usage: 
-	#		set isSameSiteCompatible [call checkSameSiteCompatible {User-Agent-String}]
+	# set isSameSiteCompatible [call checkSameSiteCompatible {User-Agent-String}]
 	#
 	# check for incompatible user-agents: https://www.chromium.org/updates/same-site/incompatible-clients
 	# based on https://devcentral.f5.com/s/articles/HTTP-cookie-SameSite-test-detection-of-browsers-with-incompatible-SameSite-None-handling
