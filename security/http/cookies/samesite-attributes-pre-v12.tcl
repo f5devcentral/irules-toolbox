@@ -305,7 +305,7 @@ when HTTP_RESPONSE_RELEASE priority 900 {
 				HTTP::header remove {Set-Cookie}
 
 				# Insert the Set-Cookie headers back in the response with SameSite=None removed
-				foreach set_cookie $set_cookies {
+				foreach set_cookie $set_cookie_headers {
 					HTTP::header insert {Set-Cookie} [regsub -nocase -all $regex_samesite_none $set_cookie ""]
 				}
 			}
