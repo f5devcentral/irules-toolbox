@@ -5,7 +5,7 @@
 # History: version - author - description
 #	1.0  - Simon Kowallik - initial version 
 #	1.1  - Aaron Hooley - updated to add support for setting SameSite to Strict|Lax|None for BIG-IP and app cookies in Set-Cookie headers
-#								- Add option to remove SameSite=None cookies for incompatible browsers
+#				- Add option to remove SameSite=None cookies for incompatible browsers
 #	1.2  - Aaron Hooley - Added option to rewrite all cookies without naming them explicitly or with prefixes
 #	1.2b - Aaron Hooley - Modified v1.2 to avoid using HTTP::cookie attribute for LTM versions before v12
 #	1.3b - Aaron Hooley - set samesite_compatible to 0 by default instead of a null string
