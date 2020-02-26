@@ -92,7 +92,7 @@ when CLIENT_ACCEPTED priority 100 {
 	#		Above definitions from: https://docs.microsoft.com/en-us/microsoftteams/platform/resources/samesite-cookie-update 
 	#
 	# Note: this iRule does not modify cookies set on the client using Javascript or other methods outside of Set-Cookie headers!
-	set samesite_security "strict"
+	set samesite_security "none"
 
 	# Uncomment when using this iRule on an APM-enabled virtual server so the MRHSession cookies will be rewritten
 	# The iRule cannot be saved on a virtual server with this option uncommented if there is no Access profile also enabled
