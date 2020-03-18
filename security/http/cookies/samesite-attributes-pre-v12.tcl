@@ -106,7 +106,8 @@ when CLIENT_ACCEPTED priority 100 {
 	#
 	# To enable this, list the specific named cookies in the list command and comment out the second set command below
 	# To disable this, set this variable to {} and comment out the first set command below
-	set named_cookies [list {MRHSession} {LastMRH_Session}]
+	# Cookie names from internal BZ ID761049
+	set named_cookies [list {MRHSession} {LastMRH_Session} {F5_ST} {TIN}]
 	#set named_cookies {}
 
 	# 3. Rewrite cookies with a prefix like BIG-IP persistence cookies
