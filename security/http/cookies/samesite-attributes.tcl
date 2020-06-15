@@ -1,6 +1,6 @@
 # iRule: samesite_cookie_handling
 # author: Simon Kowallik
-# version: 1.3
+# version: 1.4
 #
 # This iRule requires BIG-IP v12 or higher to use the HTTP::cookie attribute command. 
 # Check https://github.com/f5devcentral/irules-toolbox/tree/master/security/http/cookies for a v11 iRule 
@@ -12,15 +12,16 @@
 #			- Add option to remove SameSite=None cookies for incompatible browsers
 #	 1.2 - Aaron Hooley - Added option to rewrite all cookies without naming them explicitly or with prefixes
 #	 1.3 - Aaron Hooley - set samesite_compatible to 0 by default instead of a null string 
+#	 1.4 - Aaron Hooley - Fixed issue with removing samesite=none cookies for incompatible clients and setting lax or strict
 #
 # What the iRule does:
 # Sets SameSite to Strict, Lax or None (and sets Secure when SameSite=None) for compatible user-agents
 # Optionally removes SameSite attribute from all cookies for incompatible user-agents so they'll handle cookies as if they were SameSite=None
 #
-# The iRule should work for:
+# The iRule works for:
 # - LTM for web app cookies and persistence cookies, except those that the web app sets via Javascript
 # - ASM for web app cookies and all ASM cookies except those that ASM or the web app sets via Javascript
-# - APM for web app cookies and all APM cookies you configure in the config variable $named_cookies, except those that the web app sets via Javascript
+# - APM for web app cookies and all APM cookies if set set_samesite_on_all=1 or configure the cookie names in the config variable $named_cookies, except those that the web app sets via Javascript
 #
 # The iRule requires BIG-IP v12 or greater to use the HTTP::cookie attribute command
 #
@@ -71,9 +72,9 @@ proc checkSameSiteCompatible {user_agent} {
 	return 1
 
 	# CPU Cycles on Executing (>100k test runs)
-	#	 Average								 22000-42000 (fastest to slowest path)
-	#	 Maximum								214263
-	#	 Minimum								 13763
+	#	 Average		 22000-42000 (fastest to slowest path)
+	#	 Maximum		214263
+	#	 Minimum		 13763
 }
 
 # the iRule code
@@ -99,13 +100,17 @@ when CLIENT_ACCEPTED priority 100 {
 	# Note: this iRule does not modify cookies set on the client using Javascript or other methods outside of Set-Cookie headers!
 	set samesite_security "none"
 
+	# Set the security value to lower case for easier string comparisons later in this iRule
+	set samesite_security [string tolower $samesite_security]
+
 	# Uncomment when using this iRule on an APM-enabled virtual server so the MRHSession cookies will be rewritten
 	# The iRule cannot be saved on a virtual server with this option uncommented if there is no Access profile also enabled
 	#ACCESS::restrict_irule_events disable
 
 	# 1. If you want to set SameSite on all BIG-IP and web application cookies for compliant user-agents, set this option to 1
+	# The next two configuration options will be ignored since we are rewriting samesite on all cookies
 	# Else, if you want to use the next two options for rewriting explicit named cookies or cookie prefixes, set this option to 0
-	set set_samesite_on_all 0
+	set set_samesite_on_all 1
 
 	# 2. Rewrite SameSite on specific named cookies
 	#
@@ -122,6 +127,7 @@ when CLIENT_ACCEPTED priority 100 {
 	#set cookie_prefixes {}
 
 	# For incompatible user-agents, this iRule can remove the SameSite attribute from all cookies sent to the client via Set-Cookie headers
+	# This should be enabled by default so user-agents that don't process samesite=none will get the cookies without samesite being set
 	# This is only necessary if BIG-IP or the web application being load balanced sets SameSite=None for all clients
 	# set to 1 to enable, 0 to disable
 	set remove_samesite_for_incompatible_user_agents 1
@@ -133,7 +139,7 @@ when CLIENT_ACCEPTED priority 100 {
 	# You shouldn't have to make changes to configuration below here
 
 	# Track the user-agent and whether it supports the SameSite cookie attribute
-	set samesite_compatible 0
+	set samesite_none_compatible {}
 	set user_agent {}
 
 	if { $samesite_debug }{
@@ -144,7 +150,7 @@ when CLIENT_ACCEPTED priority 100 {
 	}
 }
 
-# Run this test event before any other iRule HTTP_REQUEST events to set the User-Agent header value
+# Run this test event before any other iRule HTTP_REQUEST events to set the User-Agent header value 
 # Comment out this event when done testing user-agents
 #when HTTP_REQUEST priority 2 {
 
@@ -154,22 +160,27 @@ when CLIENT_ACCEPTED priority 100 {
 #	HTTP::header replace user-agent {chrome/51.10}
 #}
 
-# Run this iRule before any other iRule HTTP_REQUEST events
+# Run this before any other iRule HTTP_REQUEST events on the virtual server
 when HTTP_REQUEST priority 100 {
 
-	# If we're setting samesite=none, we need to check the user-agent to see if it's compatible
-	if { not [string equal -nocase $samesite_security "none"] }{
-
-		# Not setting SameSite=None, so exit this event
-		return
+	if { $samesite_debug }{ 
+		log local0. "$prefix [string repeat "-" 40]" 
+		log local0. "$prefix [HTTP::host][HTTP::uri]"
 	}
 
-	# Inspect user-agent once per TCP session for higher performance if the user-agent hasn't changed
-	if { $samesite_compatible == 0 or $user_agent ne [HTTP::header value {User-Agent}]} {
-		set user_agent [HTTP::header value {User-Agent}]
-		set samesite_compatible [call checkSameSiteCompatible $user_agent]
-		if { $samesite_debug }{
-			log local0. "$prefix Got \$samesite_compatible=$samesite_compatible and saved current \$user_agent: $user_agent"
+	# Check if user-agent can handle samesite=none if we're removing samesite=none cookies or if we're setting samesite=none
+
+	# If we're removing samesite=none cookies for incompatible browsers or we're setting samesite to none, 
+	#	we need to check the user-agent to see if it's compatible with samesite=none
+	if { $remove_samesite_for_incompatible_user_agents == 1 or $samesite_security eq "none"}{
+
+		# Inspect user-agent once per TCP session for higher performance if the user-agent hasn't changed
+		if { $samesite_none_compatible == 0 or $user_agent ne [HTTP::header value {User-Agent}]} {
+			set user_agent [HTTP::header value {User-Agent}]
+			set samesite_none_compatible [call checkSameSiteCompatible $user_agent]
+			if { $samesite_debug }{
+				log local0. "$prefix Got \$samesite_none_compatible=$samesite_none_compatible and saved current \$user_agent: $user_agent"
+			}
 		}
 	}
 }
@@ -177,10 +188,10 @@ when HTTP_REQUEST priority 100 {
 when HTTP_RESPONSE_RELEASE priority 900 {
 
 	# Log the pre-existing Set-Cookie header values
-	if { $samesite_debug }{ log local0. "$prefix Set-Cookie value(s): [HTTP::header values {Set-Cookie}]" }
+	if { $samesite_debug }{ log local0. "$prefix Original Set-Cookie value(s): [HTTP::header values {Set-Cookie}]" }
 
-	if { $samesite_compatible } {
-		# user-agent is compatible with SameSite=None, set SameSite on matching cookies
+	if { $samesite_none_compatible == 1 or $samesite_security ne "none" } {
+		# user-agent is compatible with SameSite=None or we're setting samesite to lax or strict, so set SameSite on matching cookies
 
 		if { $set_samesite_on_all }{
 			if { $samesite_debug }{ log local0. "$prefix Setting SameSite=$samesite_security on all cookies and exiting" }
@@ -245,7 +256,6 @@ when HTTP_RESPONSE_RELEASE priority 900 {
 	} else {
 
 		# User-agent can't handle SameSite=None
-
 		if { $remove_samesite_for_incompatible_user_agents }{
 
 			# User-agent can't handle SameSite=None, so remove SameSite attribute from all cookies if SameSite=None
