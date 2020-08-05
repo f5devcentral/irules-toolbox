@@ -131,6 +131,10 @@ when CLIENT_ACCEPTED priority 100 {
 
 	# Regex to match samesite=none optionally followed by a semi-colon, space, comma and an option space
 	set regex_samesite_none {samesite=none[\; ,]? ?}
+	
+	# Regex to match samesite=none optionally followed by a semi-colon, space, comma and an option space
+	set regex_samesite_none_secure {samesite=none[\; ,]secure[\; ,]}
+
 
 	# Regex to match samesite=VALUE optionally followed by a semi-colon, space, comma and an option space
 	set regex_samesite_any {samesite=(none|strict|lax)[\; ,]? ?}
@@ -196,16 +200,27 @@ when HTTP_RESPONSE_RELEASE priority 900 {
 			
 			foreach set_cookie $set_cookie_headers {
 
+				# Remove any prior instances of SameSite=None;Secure attribute and value from this Set-Cookie header
+				if {[string match -nocase {*samesite=none[\; ,]*secure[\; ,]*} $set_cookie]}{
+					
+					set set_cookie [regsub -nocase -all $regex_samesite_none_secure $set_cookie "" ]
+
+					if { $samesite_debug }{ log local0. "$prefix Found samesite=none; Secure; and removed it: $set_cookie"}
+				}
+				
 				# Remove any prior instances of SameSite attribute and value from this Set-Cookie header
 				if {[string match -nocase {*samesite=none*} $set_cookie]}{
-					set set_cookie [regsub -nocase -all $regex_samesite_any $set_cookie ""]
+					
+					set set_cookie [regsub -nocase -all $regex_samesite_any $set_cookie "" ]
+
 					if { $samesite_debug }{ log local0. "$prefix Found samesite=none and removed it: $set_cookie"}
 				}
+
 				# Insert the current Set-Cookie header with SameSite attribute appended
 				if {[string equal -nocase $samesite_security "none"]}{
-					# Might want to check if Secure is already set in this header?
-					HTTP::header insert {Set-Cookie} "$set_cookie SameSite=None; Secure;"
-					if { $samesite_debug }{ log local0. "$prefix Adding Set-Cookie: $set_cookie SameSite=None; Secure;" }
+					# Might want to check if Secure is already set in this header? - We do up above now. 
+					HTTP::header insert {Set-Cookie} "$set_cookie; SameSite=None; Secure;"
+					if { $samesite_debug }{ log local0. "$prefix Adding Set-Cookie: $set_cookie SameSite=None; Secure" }
 				} else {
 					HTTP::header insert {Set-Cookie} "$set_cookie; SameSite=$samesite_security;"
 					if { $samesite_debug }{ log local0. "$prefix Adding Set-Cookie: $set_cookie SameSite=$samesite_security;" }
