@@ -1,0 +1,6 @@
+when HTTP_REQUEST {
+  if {not ([string tolower [HTTP::header User-Agent]] contains "msie 8.0")} {
+    HTTP::respond 200 content { sorry, but the browser is not supported. }
+    log local0. "Unhandled User Agent: [HTTP::header User-Agent]"
+  }
+}

@@ -1,0 +1,6 @@
+when HTTP_REQUEST {
+  if {!([HTTP::path] ends_with "/")} {
+    HTTP::path "[HTTP::path]/"
+    HTTP::redirect [HTTP::uri]
+  }
+}

@@ -1,0 +1,40 @@
+when RULE_INIT {
+   # Debug off (0), Errors-only(1), On(2) or Verbose(3)
+   set ::debug 3
+   if { $::debug>=2 } { log local0. "Log level set to $::debug" }
+}
+when CLIENT_ACCEPTED {
+   # Remember the address of the destination SOA server
+   set SoaServerIP [IP::local_addr]
+   if { $::debug>=3 } { log local0. "$SoaServerIP: Outgoing connection requested" }
+}
+when HTTP_REQUEST {
+   # Extract the hostname of the SOA server from the HTTP request
+   # This name will must match the common name in the certificate
+   # of the SOA server when the SSL session is set up.
+   set SoaServerName [string tolower [substr [HTTP::host] 0 ":"]]
+   if { $::debug>=3 } { log local0. "$SoaServerIP: Hostname = $SoaServerName" }
+
+   # Overrule the dummy address in the default pool of the virtual
+   # and change it to the address of the SoaServer. Also change the
+   # destination port from 80 to 443.
+   node $SoaServer 443
+}
+when SERVERSSL_HANDSHAKE {
+   # Extract the server certificate from the SOA server ServerHello message
+   set SoaServerCert [SSL::cert 0]
+
+   # Extract the common name from the server certificate
+   set CommonName [string tolower [findstr [X509::subject $SoaServerCert] "CN=" 3 ","]]
+   if { $::debug>=3 } { log local0. "$SoaServerIP: Common Name = $CommonName" }
+
+   if { $CommonName ne $SoaServerName } {
+      clientside {TCP::respond "HTTP/1.1 403 WRONG CERTIFICATE\r\n\r\nThe common name $CommonName `
+in the certificate at $SoaServerIP does not match to hostname $SoaServerName in the SOA request.\r\n"}
+      TCP::close
+      if { $::debug>=1 } { log local0. "$SoaServerIP: Name mismatch CN=$CommonName, Hostname=$SoaServerName" }
+   } else {
+      # Create a log entry for this (successful) request
+      if { $::debug>=2 } { log local0. "$SoaServerIP: Request to $SoaServerName successfully forwarded" }
+   }
+}

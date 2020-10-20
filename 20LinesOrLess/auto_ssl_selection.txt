@@ -1,0 +1,22 @@
+# Port 443 Rule
+when HTTP_REQUEST {
+  switch -glob [string tolower [HTTP::uri]] {
+    "/giving*" -
+    "/formsdisplay.aspx?ekfrm=12884903667" {
+      return
+    }
+    default {
+      HTTP::redirect "http://[HTTP::host][HTTP::uri]"
+    }
+  }
+}
+
+# Port 80 Rule
+when HTTP_REQUEST {
+  switch -glob [string tolower [HTTP::uri]] {
+    "/giving*" -
+    "/formsdisplay.aspx?ekfrm=12884903667" {
+      HTTP::redirect "https://[HTTP::host][HTTP::uri]"
+    }
+  }
+}

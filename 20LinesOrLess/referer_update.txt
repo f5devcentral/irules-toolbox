@@ -1,0 +1,14 @@
+ when HTTP_REQUEST {
+
+    log local0. "[IP::client_addr]:[TCP::client_port]: New [HTTP::method] request to [HTTP::host][HTTP::uri]\
+       with Referer [HTTP::header Referer]"
+
+    if {[HTTP::header exists "MyHeader"]} {
+       log local0. "[IP::client_addr]:[TCP::client_port]: Updating Referer to\
+          [string map -nocase {http:// https://} [HTTP::header Referer]"
+       HTTP::header replace Referer "[string map -nocase {http:// https://} [HTTP::header Referer]"
+    }
+ }
+ when HTTP_REQUEST priority 501 {
+    log local0. "[IP::client_addr]:[TCP::client_port] (501): Current Referer [HTTP::header Referer]"
+ }

@@ -1,0 +1,8 @@
+when HTTP_REQUEST {
+    log local0. " Request in [IP::client_addr] [HTTP::host][HTTP::uri]"
+    if { ( [HTTP::uri] contains "/down.php" ) and not ( ( [IP::addr [IP::client_addr] equals 75.66.12.0/255.255.255.0] ) or ( [IP::addr [IP::client_addr] equals 15.150.0.0/255.255.0.0] ) ) } {
+        log local0. " Blocked access [IP::client_addr] [HTTP::host][HTTP::uri]"
+        # drop the request
+        reject
+    }
+}

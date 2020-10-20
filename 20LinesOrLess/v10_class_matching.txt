@@ -1,0 +1,11 @@
+# Loop through each class line
+for {set i 0} {$i < [class size my_dgl]} {incr i} {
+   # Use scan to parse the two fields from the class
+   scan [class element -name $i my_dgl] {%[^ ]%s} my_pattern my_value
+   # Use string match to evaluate the pattern against the string
+   if {[string match -nocase $my_pattern [HTTP::uri]]}{
+      # Found a match
+      log local0. "Matched $my_pattern, using $my_value"
+      break
+   }
+}

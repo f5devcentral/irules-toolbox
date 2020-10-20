@@ -1,0 +1,17 @@
+when RULE_INIT {
+  # Exposed passphrase, but this key can be synchronized to the peer LTM
+  set static::passphrase "secret"
+  # Private passphrase, but it isn't synchronized.  On LTM failover to
+  # its peer, applications relying on the encrypted cookies will break.
+  # set static::passphrase [AES::key]
+}
+when HTTP_REQUEST {
+  foreach { cookieName } [HTTP::cookie names] {
+    HTTP::cookie decrypt $cookieName $static::passphrase
+  }
+}
+when HTTP_RESPONSE {
+  foreach { cookieName } [HTTP::cookie names] {
+    HTTP::cookie encrypt $cookieName $static::passphrase
+  }
+}

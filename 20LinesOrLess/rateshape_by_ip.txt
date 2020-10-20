@@ -1,0 +1,11 @@
+when CLIENT_ACCEPTED {
+  if { [class match [IP::client_addr] eq gold_users } {
+    rateclass rateshape_10mb
+  } elseif { [class match [IP::client_addr] eq  silver_users] } {
+      rateclass rateshape_512k
+  } elseif { [class match [IP::client_addr] eq lump_o_coal_users] } {
+      rateclass rateshape_128k
+  } else {
+      discard
+  }
+}

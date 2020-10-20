@@ -1,0 +1,16 @@
+when HTTP_REQUEST {
+
+   # Check if request matches the criteria to disable server-side SSL
+   if { [HTTP::uri] starts_with "/clear"}{
+
+      # disable SSL on the serverside context
+      SSL::disable serverside
+
+      # select the http pool
+      pool http_pool
+
+   } else {
+      # default is to use server-side SSL and the https pool
+      pool https_pool
+   }
+}

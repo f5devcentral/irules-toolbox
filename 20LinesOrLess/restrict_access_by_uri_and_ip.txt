@@ -1,0 +1,14 @@
+when HTTP_REQUEST {
+  switch -glob [HTTP::uri] {
+    "/error*" {
+      if { (([class match [IP::client_addr] equals ipgrouptest]) or ([class match [IP::client_addr] equals ipgrouptest2])) } {
+      #If the client IP match the ipgrouptest/2 class we do nothing
+      } else { HTTP::respond 403 }
+    }
+    "/example*" {
+      if { (([class match [IP::client_addr] equals ipgrouptest]) or ([class match [IP::client_addr] equals ipgrouptest3])) } {
+        #If the client IP match the ipgrouptest/3 class we do nothing
+      } else { HTTP::respond 403 }
+    }
+  }
+}

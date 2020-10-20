@@ -1,0 +1,5 @@
+when DNS_REQUEST {
+  if { [IP::addr [IP::client_addr] equals 192.168.1.0/24] } {
+    cname www.redirect.domain.ipn.mx
+  }
+}

@@ -1,0 +1,19 @@
+when HTTP_REQUEST {
+   # Check the requested path (URI minus query string)
+   switch -glob [string tolower [HTTP::path]] {
+      "*.gif" -
+      "*.js" -
+      "*.css" -
+      "*.jpg" -
+      "*.bmp" {
+         # Read in everything after the first / that is not a /.
+     # Save that to $session_id and everything else to $uri_to_save
+     # scan will return the number of matches
+         if {[scan [HTTP::uri] {/%[^/]%s} session_id uri_to_save] == 2}{
+            # Rewrite the URI without the session ID
+            #log local0. "$session_id"
+            HTTP::uri $uri_to_save
+         }
+      }
+   }
+}

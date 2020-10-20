@@ -1,0 +1,21 @@
+ 1: # Select the first returned IP address as the destination IP (inherits the destination port from the client's destination port).
+   2: when RULE_INIT {
+   3:   set static::dns_vs my_dns_vs
+   4: }
+   5:
+   6: when CLIENT_ACCEPTED {
+   7:
+   8:   # Get IP(s) for hostname www.example.com against 4.2.2.1 name server
+   9:   set ips [RESOLV::lookup @$static::dns_vs -a "www.example.com"]
+  10:
+  11:   # Log result. If there are multiple IP's it could be a TCL list like {1.1.1.1 2.2.2.2 3.3.3.3}.
+  12:   log local0. "Looked up www.example.com and found $ips, parsed first element: [lindex $ips 0]"
+  13:
+  14:   # Check if the first list element was empty
+  15:   if {$ips eq ""}{
+  16:     # Input wasn't an IP address, take some default action?
+  17:   } else {
+  18:     # Select the IP
+  19:     node [lindex $ips 0]
+  20:   }
+  21: }

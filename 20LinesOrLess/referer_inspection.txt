@@ -1,0 +1,16 @@
+when HTTP_REQUEST {
+  switch -glob [string tolower [URI::host [HTTP::header "Referer"]]] {
+    "www.mywebsite.com"
+    "www.contentwebsite.com" {
+      # Allow Request to go through...
+    }
+    "" {
+      HTTP::respond 200 content ""
+      log local0 "Blank Referer from IP: [IP::client_addr]"
+    }
+    default {
+      HTTP::redirect [HTTP::header "Referer"]
+      log local0 "Blocked Referer: [HTTP::header value Referer] from IP: [IP::client_addr]"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+when CLIENT_DATA {
+  set sCVEPattern "*: () \{*"
+  set bCVEFound 0
+  if { [string match $sCVEPattern [UDP::payload]] } {
+    set bCVEFound 1
+  }
+}
+when SIP_REQUEST {
+  if { $bCVEFound } {
+    log local0. "Detected CVE-2014-6271 Shellshock attack! IP: '[IP::client_addr]' From: [SIP::from] To: [SIP::to]"
+    reject
+  }
+}

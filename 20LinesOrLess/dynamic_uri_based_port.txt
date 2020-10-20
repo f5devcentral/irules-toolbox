@@ -1,0 +1,15 @@
+when HTTP_REQUEST {
+  set newuri [findstr [HTTP::uri] "/" 5]
+  log local0. "Original request is: [HTTP::host][HTTP::uri]"
+  log local0. "New URI is: $newuri"
+  set newport [findstr [HTTP::uri] "/" 1 4]
+  HTTP::uri "$newuri"
+  log local0. "New Port is: $newport"
+  HTTP::header replace Host "[HTTP::host]:$newport"
+  if { $newport ne "" } {
+    #Use the relevant Pool
+    pool chuckpool_$newport
+  } else {
+      log local0. "Newport Variable was empty"
+  }
+}

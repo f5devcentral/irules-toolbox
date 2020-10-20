@@ -1,0 +1,13 @@
+when HTTP_REQUEST {
+  if { [IP::addr [IP::client_addr] equals 10.10.10.0/24] } {
+    #Do nothing to forward to the default pool
+  } else {
+      #Replace the host
+      HTTP::header replace Host "www.abc.com"
+      set [string tolower [HTTP::uri]]
+      #Check if the uri start with /go. If not, replace it with /go.
+      if { not $uri starts_with "/go"} {
+        HTTP::uri "/go"
+      }
+  }
+}

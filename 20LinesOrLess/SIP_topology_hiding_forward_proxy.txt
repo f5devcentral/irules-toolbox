@@ -1,0 +1,19 @@
+when SIP_REQUEST {
+        set originator_ip [IP::remote_addr]
+        node [IP::local_addr]:[TCP::local_port]
+}
+when SIP_REQUEST_SEND {
+        set snat_ip [serverside {IP::local_addr}]
+        set ip_map [list [findstr [SIP::header From] "@" 1 ">"] $snat_ip]
+        SIP::header remove from
+        SIP::header insert from "[string map $ip_map  [SIP::header "From"]]"
+        SIP::header remove via
+        SIP::header insert via [string map $ip_map  [SIP::header "Via"]]
+}
+when SIP_RESPONSE {
+        set ip_map [list $snat_ip $originator_ip]
+        SIP::header remove from
+        SIP::header insert from "[string map $ip_map  [SIP::header "From"]]"
+        SIP::header remove via
+        SIP::header insert via [string map $ip_map [SIP::header "Via"]]
+}

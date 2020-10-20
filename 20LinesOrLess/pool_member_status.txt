@@ -1,0 +1,13 @@
+when HTTP_REQUEST {
+  if {[HTTP::uri] eq "/status" } {
+    scan [LB::select] %s%s%s%s%d command current_pool command2 current_member current_port
+    eval [LB::select]
+    set response "$current_pool Pool Status - [clock format [clock seconds]]http://[HTTP::host]/status'>"
+    if { [active_members $current_pool] < 1 } {
+      append response "POOL NAME:$current_pool CURRENT MEMBER:$current_member:$current_port STATUS: DOWN"
+    } else {
+        append response "POOL NAME:$current_pool CURRENT MEMBER:$current_member:$current_port STATUS: UP"
+    }
+  }
+  HTTP::respond 200 content $response "Content-Type" "text/html"
+}

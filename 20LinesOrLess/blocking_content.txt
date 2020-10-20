@@ -1,0 +1,19 @@
+when HTTP_REQUEST {
+  # Log a debug message with client IP:port and the class contents
+  log local0. "[IP::client_addr]:[TCP::client_port]: class badStrings"
+
+  # Check if the client IP is part of the hosts datagroup
+  if { [class match [IP::server_addr] equals Hosts]} {
+    # Log a debug message indicating the client IP matched the Hosts class
+    log local0. "[IP::client_addr]:[TCP::client_port]: matched Hosts"
+
+    # Check if the requested URI contains any known bad strings
+    if { [class match [string tolower [HTTP::uri]] contains badStrings]} {
+      # Log a debug message indicating the client matched the Host class and had a bad string in the URI
+      log local0. "Matched server IP and found bad string in [HTTP::uri]: entry# [class match [string tolower [HTTP::uri]] contains badStrings]"
+
+      # Drop the TCP connection
+      drop
+    }
+  }
+}

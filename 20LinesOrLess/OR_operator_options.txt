@@ -1,0 +1,24 @@
+# Option 1
+when HTTP_REQUEST {
+  if { ([HTTP::uri] starts_with "/path/to/broken") || ([HTTP::uri] starts_with "/other/path/broken") } {
+    HTTP::redirect "maintenance.html"
+    #Note: Modified URL for forum posting.
+  }
+}
+
+# Option 2
+when HTTP_REQUEST {
+  switch -glob [HTTP::uri] {
+    "/path/to/broken*" -
+    "/other/path/broken*" {
+      HTTP::redirect "/maintenance.html"
+    }
+  }
+}
+
+# Option 3
+when HTTP_REQUEST {
+  if {[class match [HTTP::uri] equals myUris]} {
+    HTTP::redirect "/maintenance.html"
+  }
+}

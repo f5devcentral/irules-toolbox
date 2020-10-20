@@ -1,0 +1,7 @@
+when HTTP_REQUEST {
+  switch -glob [string tolower [HTTP::host][HTTP::uri]] {
+    "some.host.com/singleuri*" {
+      HTTP::respond 301 Location "https://some.other.host.com[string map {"/singleuri" "/anotheruri"} [HTTP::uri]]"
+    }
+  }
+}

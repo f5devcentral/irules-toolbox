@@ -1,0 +1,15 @@
+when HTTP_REQUEST {
+  # decode original URI.
+  set tmpUri [HTTP::uri]
+  set uri [URI::decode $tmpUri]
+
+  # repeat decoding until the decoded version equals the previous value.
+  while { $uri ne $tmpUri } {
+    set tmpUri $uri
+    set uri [URI::decode $tmpUri]
+  }
+  HTTP::uri $uri
+
+  log local0. "Original URI: [HTTP::uri]"
+  log local0. "Fully decoded URI: $uri"
+}

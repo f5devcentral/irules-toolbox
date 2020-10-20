@@ -1,0 +1,20 @@
+ when HTTP_REQUEST {
+    # Parse the first then second character in the path
+    switch -glob [string tolower [HTTP::path]] {
+       "/a[a-l]*" {
+          pool reward-uat5.123.com_AA2AL
+       }
+       "/a[m-z]*" -
+       "/b[a-l]*" {
+          pool reward-uat5.123.com_AM2BL
+       }
+       "/b[m-z]*" -
+       "/c[a-d]*" {
+          pool reward-uat5.123.com_BM2CD
+       }
+       default {
+          # Requested URI was a leading forward slash only
+          pool reward-uat5.123.com_AA2AL
+       }
+    }
+ }

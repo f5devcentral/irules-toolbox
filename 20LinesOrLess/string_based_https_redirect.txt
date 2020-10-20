@@ -1,0 +1,13 @@
+when HTTP_REQUEST {
+  switch -glob [string tolower [HTTP::uri]] {
+    "*alumni/giving/gift/" -
+    "*alumni/giving/pledge/" -
+    "*alumni/directory/search.aspx" -
+    "*alumni/directory/update.aspx" {
+        # don't do anything...
+    }
+    default {
+      HTTP::respond 301 Location "https://[getfield [HTTP::host] : 1][HTTP::uri]"
+    }
+  }
+}

@@ -1,0 +1,3 @@
+when HTTP_REQUEST {
+  HTTP::header replace Host "[HTTP::host]:9000"
+}

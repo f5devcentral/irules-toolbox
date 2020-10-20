@@ -1,0 +1,7 @@
+when HTTP_REQUEST {
+  if { [class match [string tolower [HTTP::uri]] contains subsite] and \
+       !([[string tolower [HTTP::uri]] contains "/admin/upload") and \
+       ![class match [IP::addr [IP::client_addr]] eq allow] } {
+    HTTP::respond 200 content "Forbidden Redirect From Remote Server\Acess is forbidden"
+  }
+}

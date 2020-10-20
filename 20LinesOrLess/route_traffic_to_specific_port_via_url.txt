@@ -1,0 +1,6 @@
+when HTTP_REQUEST {
+  switch [string tolower [HTTP::host]] {
+    "appa.domain.com" { pool appa_pool }
+    "appb.domain.com" { pool appb_pool }
+  }
+}

@@ -1,0 +1,5 @@
+when ACCESS_POLICY_COMPLETED {
+  set username [ACCESS::session data get "session.logon.last.username"]
+  set content "< script type=text/javascript language=javascript> function s(){ document.f.submit(); } \ \ "
+  ACCESS::respond 200 content $content
+}

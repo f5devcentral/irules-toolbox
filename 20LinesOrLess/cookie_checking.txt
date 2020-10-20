@@ -1,0 +1,15 @@
+when HTTP_REQUEST {
+  if { ( [HTTP::uri] starts_with "/cookietest" ) } {
+    ## test for cookie
+    if { not ( [HTTP::cookie exists "COOKIETEST"] ) } {
+      ## cookies are disabled
+      HTTP::respond 200 content "Sorry. This site requires cookies"
+    } else {
+        ## cookies enabled - redirect to first URI
+        HTTP::respond 302 Location [findstr [HTTP::uri] "/cookietest" 11]
+    }
+  } elseif { [HTTP::cookie count] == "" } {
+      ## no cookies (could be first request) - redirect to cookie test URI with test cookie
+      HTTP::respond 302 Location "/cookietest[HTTP::uri]" "Set-Cookie" "COOKIETEST=1"
+  }
+}

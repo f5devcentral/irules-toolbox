@@ -1,0 +1,14 @@
+timing on
+when HTTP_REQUEST {
+  switch -glob -- [string tolower [HTTP::path]] {
+    "/devicepairingstage*" {
+      pool ianappsstage-pool-https
+      log local0.debug  "uri: [HTTP::uri]"
+      log local0.debug  "[client_addr] hit devicepairingstage"
+    }
+    "/devicepairing*" {
+      pool ianapps-pool-https
+      log local0.debug "uri: [HTTP::uri]"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+when CLIENT_ACCEPTED {
+  set poolname "test-pool"
+
+  if { [active_members $poolname] < 1 } {
+    # No active pool members; reset client
+    reject
+    return
+  }
+
+  set count [members $poolname]
+  set attempt 0
+  while { $attempt < $count } {
+    set num [expr {[table incr "round-robin:$poolname"] % $count}]
+    set mbr [lindex [members -list $poolname] $num]
+    set mbr_ip [lindex $mbr 0]
+    set mbr_port [lindex $mbr 1]
+    if { [LB::status pool $poolname member $mbr_ip $mbr_port up] } {
+      pool $poolname member $mbr_ip $mbr_port
+      return
+    }
+    incr attempt
+  }
+}

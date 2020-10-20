@@ -1,0 +1,10 @@
+when HTTP_REQUEST {
+  set uri_token [string range [HTTP::path] [expr {[string last / [HTTP::path]] + 1}] end]
+}
+
+when HTTP_RESPONSE {
+  if {[HTTP::status] == 404} {
+    set red_uri [class match -value $uri_token equals class_name]
+    HTTP::redirect $red_uri
+  }
+}

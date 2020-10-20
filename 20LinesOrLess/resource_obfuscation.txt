@@ -1,0 +1,15 @@
+when HTTP_RESPONSE {
+  # Remove server header
+  HTTP::header remove "Server"
+
+  # Remove Date header
+  HTTP::header remove "Date"
+  # Remove any header which starts with "X-"
+  for {set i 0} {$i < [HTTP::header count]} {incr i} {
+    # Check if the current header name starts with X-
+    if {[string tolower [HTTP::header at $i]] starts_with "x-"}{
+      # Remove the header
+      HTTP::header remove [HTTP::header at $i]
+    }
+  }
+}

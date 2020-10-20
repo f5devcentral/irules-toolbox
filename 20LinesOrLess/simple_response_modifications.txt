@@ -1,0 +1,14 @@
+when HTTP_REQUEST {
+  set specialurl 0
+  if { [HTTP::uri] equals "/test.txt" } {
+    set specialurl 1
+  }
+  # ...any other rule elements...
+}
+when HTTP_RESPONSE {
+  if { $specialurl = 1 } {
+    # do something
+  } else {
+    # do something else or nothing
+  }
+}

@@ -1,0 +1,14 @@
+when HTTP_REQUEST {
+  if { [string tolower [HTTP::path]] starts_with "/xyz/" or [string tolower [HTTP::query]] contains "xy=9" } {
+    if { [HTTP::method] eq "GET" and [HTTP::header "Upgrade"] contains "WebSocket" } {
+      HTTP::disable
+      pool pool3
+    }
+    pool pool3
+  } else {
+      switch -glob [string tolower [HTTP::uri]] {
+        "/fr/app*" { pool pool2 }
+        default { pool pool1 }
+      }
+  }
+}

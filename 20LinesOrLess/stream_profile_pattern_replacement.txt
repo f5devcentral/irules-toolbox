@@ -1,0 +1,14 @@
+when RULE_INIT {
+  set static::search "http://web.site.com/fd/qalogon.php\\?groupid=aaa_library&using sql35\\?="
+  set static::replace "http://new.site.com:8080/share/page/site/directory/dashboard"
+}
+when HTTP_REQUEST {
+  STREAM::disable
+  HTTP::header remove "Accept-Encoding"
+}
+when HTTP_RESPONSE {
+  if {[HTTP::header value Content-Type] contains "text"}{
+    STREAM::expression @${static::search}@${static::replace}@
+    STREAM::enable
+  }
+}

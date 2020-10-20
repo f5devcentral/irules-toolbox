@@ -1,0 +1,21 @@
+when RTSP_REQUEST {
+if { [RTSP::method] contains "OPTIONS" } {
+  RTSP::respond 200 OK "Server: F5-redirector\r\nPublic: OPTIONS, SETUP\r\n\r\n"
+}
+if { [RTSP::method] contains "SETUP" or [RTSP::method] contains "DESCRIBE" } {
+  set client [IP::remote_addr]
+  regexp "rtsp://.*/(.*)$" [RTSP::uri] url file
+  # MD5 Hash & Persistence
+  set S ""
+  foreach N [active_members -list vod] {
+    if { [md5 $N$file] > $S } {
+      set S [md5 $N$file]
+      set W $N
+    }
+  }
+  set vod [lindex $W 0]
+  set newuri "rtsp://$vod:554/$file"
+  RTSP::respond 302 MOVED_TEMPORARILY "Server: F5-redirector\r\nLocation: $newuri\r\nConnection: close\r\n\r\n"
+  log "Client ($client) request to $file redirected to $newuri"
+}
+}

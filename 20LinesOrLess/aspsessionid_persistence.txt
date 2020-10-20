@@ -1,0 +1,10 @@
+when HTTP_RESPONSE {
+  if { [HTTP::cookie exists "ASPSESSIONID"] } {
+    persist add uie [HTTP::cookie "ASPSESSIONID"]
+  }
+}
+when HTTP_REQUEST {
+  if { [HTTP::cookie exists "ASPSESSIONID"] } {
+    persist uie [HTTP::cookie "ASPSESSIONID"]
+  }
+}

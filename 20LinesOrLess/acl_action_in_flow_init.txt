@@ -1,0 +1,11 @@
+when FLOW_INIT {
+  set ipaddr [IP::client_addr]
+  set locale [whereis $ipaddr country]
+  log local0. "IP Address/Counry $ipaddr/$locale"
+  switch $locale {
+    "US" -
+    "CA" { return }
+    "GB" { ACL::action drop }
+    default { ACL::action reset }
+  }
+}

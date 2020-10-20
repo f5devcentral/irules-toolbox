@@ -1,0 +1,17 @@
+ when LB_SELECTED {
+    switch [LB::server addr] {
+       222.35.42.126 {
+          switch [IP::client_addr] {
+             192.168.3.11 { snatpool snat_crt_test2 }
+             default { snatpool snat_crt_pool }
+          }
+       }
+       221.218.248.155 {
+          switch [IP::client_addr] {
+             192.168.3.11 { snatpool snat_uni_test2 }
+             default { snatpool snat_uni_pool }
+          }
+       }
+       default { snat automap }
+    }
+ }

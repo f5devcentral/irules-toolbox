@@ -1,0 +1,12 @@
+# Option 1
+when HTTP_REQUEST {
+  if {[HTTP::host] ends_with ".olddomain.com"} {
+    HTTP::respond 301 Location "https://[getfield [HTTP::host] . 1].newdomain.com[HTTP::uri]"
+  }
+}
+# Option 2
+when HTTP_REQUEST {
+  if {[HTTP::host] ends_with ".olddomain.com"} {
+    HTTP::respond 301 Location "https://[string map {olddomain newdomain} [HTTP::host]][HTTP::uri]"
+  }
+}

@@ -1,0 +1,21 @@
+when CLIENT_ACCEPTED {
+        # Set a variable to track whether this is an HTTPS request
+        set https 0
+}
+when CLIENTSSL_HANDSHAKE {
+        # There was a client side SSL handshake, so update the variable
+        set https 1
+}
+when HTTP_REQUEST {
+        # Check if referrer is eschool
+        if {!([HTTP::header "Referer"] starts_with "https://eschool.mysite.org/webapps/")}{
+            # If there is no URI redirect to portal
+             if {[HTTP::path] eq "/" }{
+                 HTTP::redirect "https://portal.mysite.org/eschool"
+             }
+}
+        if {not ($https)}{
+        # If it's not an HTTPS connection, send a redirect
+              HTTP::redirect https://[HTTP::host][HTTP::uri]
+        }
+}

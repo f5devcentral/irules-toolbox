@@ -1,0 +1,14 @@
+when HTTP_REQUEST {
+  # Check if User-Agent header is IE 8
+  if { [HTTP::header User-Agent] contains "MSIE 8" } {
+    set IE8Resp 1
+  } else  {
+    set IE8Resp 0
+  }
+}
+when HTTP_RESPONSE {
+  if { $IE8Resp } {
+    log "[IP::client_addr]:[TCP::client_port] inserting header"
+    HTTP::header insert "X-UA-Compatible" "IE=EmulateIE7"
+  }
+}

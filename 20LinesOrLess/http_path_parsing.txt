@@ -1,0 +1,21 @@
+when HTTP_REQUEST {
+  # Parse the fist character in the path
+  switch -glob [HTTP::path] {
+    "/[a-cA-C]*" {
+      pool test1
+    }
+    "/[d-lD-L]*" {
+      pool test2
+    }
+    "/[m-rM-R]*" {
+      pool test3
+    }
+    "/[s-zS-Z]*" {
+      pool test4
+    }
+    default {
+      # Requested URI was a leading forward slash only
+      pool test5
+    }
+  }
+}

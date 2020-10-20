@@ -1,0 +1,10 @@
+when HTTP_REQUEST {
+  if {$loop == 0} {
+    foreach header {[HTTP::header names]} {
+      if {[string length $header] > 32768} {
+        log local0. "Header exceeds maximum length! - Header Name: $header, Length: [string length $header], Value: [HTTP::header value $header]"
+      }
+    }
+    incr loop
+  }
+}

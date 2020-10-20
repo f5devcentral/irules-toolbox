@@ -1,0 +1,12 @@
+when HTTP_REQUEST {
+  binary scan [md5 [HTTP::password]] H* password
+  if { [class lookup [HTTP::username] $::authorized_users] equals $password } {
+    log local0. "User [HTTP::username] has been authorized to access virtual server [virtual name]"
+    # Insert iRule-based application code here if necessary
+  } else {
+      if { [string length [HTTP::password]] != 0 } {
+        log local0. "User [HTTP::username] has been denied access to virtual server [virtual name]"
+      }
+      HTTP::respond 401 WWW-Authenticate "Basic realm=\"Secured Area\""
+  }
+}

@@ -1,0 +1,13 @@
+when HTTP_REQUEST {
+    # Check requested path
+    switch -glob [HTTP::path] {
+       "/apps/aml/*" {
+          # Persist client for 10 hours
+          persist source_addr 36000
+       }
+       default {
+          # Persist client for 1 hour
+          persist source_addr 3600
+       }
+    }
+}

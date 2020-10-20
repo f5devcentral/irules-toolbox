@@ -1,0 +1,5 @@
+when CLIENT_ACCEPTED {
+  if {[TCP::remote_port] == 80} {
+    virtual HTTP_virtual
+  }
+}

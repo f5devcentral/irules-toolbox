@@ -1,0 +1,14 @@
+when SERVER_DATA {
+  set srvAge [IP::stats age]
+  set srvBytes [IP::stats bytes in]
+  # change 10000ms/10s to your desired time
+  if {$srvAge > 10000 } {
+    # change the recieved bytes if needed
+    if {$srvBytes > 3000000 } {
+      # makesure you create the rate class
+        rateclass bandHog
+        #log local0. "Bandwidth Hog: [IP::client_addr] server bytes $srvBytes"
+    }
+  }
+  #log local0. " [IP::client_addr]:[TCP::client_port] server age: $srvAge server bytes: $srvBytes"
+}

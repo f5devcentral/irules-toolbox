@@ -1,0 +1,10 @@
+when CLIENT_ACCEPTED {
+  SSL::disable clientside
+  switch [TCP::local_port] {
+    80 { }
+    443 { SSL::enable clientside }
+    default {
+      node 200.200.200.102 [TCP::local_port]
+    }
+  }
+}

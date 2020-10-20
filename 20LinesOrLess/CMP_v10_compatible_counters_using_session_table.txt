@@ -1,0 +1,9 @@
+when HTTP_REQUEST {
+   set vip [virtual name]
+   set value [session lookup uie "${vip}_my_counter"]
+   if {$value eq ""}{
+      session add uie "${vip}_my_counter" 0
+   } else {
+      session add uie "${vip}_my_counter" [expr {$value + 1}]
+   }
+}

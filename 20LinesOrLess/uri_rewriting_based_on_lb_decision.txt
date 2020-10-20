@@ -1,0 +1,20 @@
+when HTTP_REQUEST_SEND {
+  set uri [string tolower [clientside {HTTP::uri}]]
+  log local0. "[IP::client_addr]:[TCP::client_port]: selected server details: [LB::server] - \$uri: $uri"
+  if {[IP::addr [LB::server addr] equals 10.207.225.101] or [IP::addr [LB::server addr] equals 10.207.225.102] or [IP::addr [LB::server addr] equals 10.207.225.103] }{
+    log local0. "[IP::client_addr]:[TCP::client_port]: matched server check for .3 or .4"
+    switch -glob [HTTP::uri] {
+      "*/gsfo/gsfopub*" {
+        clientside {HTTP::uri "/Async/CMReceive.ashx"}
+        log local0. "[IP::client_addr]:[TCP::client_port]: updated URI to /Async/CMReceive.ashx"
+      }
+      "*/era/erapub*" {
+        clientside {HTTP::uri "/Async/ERAReceive.ashx"}
+        log local0. "[IP::client_addr]:[TCP::client_port]: updated URI to /Async/ERAReceive.ashx"
+      }
+      default {
+        log local0. "[IP::client_addr]:[TCP::client_port]: didn't match URI checks"
+      }
+    }
+  }
+}

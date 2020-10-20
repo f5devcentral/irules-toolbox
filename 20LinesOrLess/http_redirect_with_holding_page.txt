@@ -1,0 +1,22 @@
+when HTTP_REQUEST {
+  if { [TCP::local_port] eq "80"  } {
+    persist source_addr 1800
+    HTTP::fallback http://support.com/
+    if { [HTTP::host] == "www.domain.co.uk" or "www.domain.com" or "www.domain.org" } {
+      HTTP::respond 200 content "Apology page http://www.domain.com/aba/>\
+        We are sorry, but the site you are looking for is temporarily out of service." "Content-Type" "text/html"
+    } else {
+      pool Web_Farm_Front
+    }
+  } elseif { [TCP::local_port] eq "443"  } {
+      HTTP::header insert "BPL-SSL" "On"
+      pool Web_Farm_Front
+  } else {
+      set srvr [findclass [TCP::local_port] $::Individual_Servers " "]
+      if { $srvr ne "" } {
+        node $srvr 80
+      } else {
+          HTTP::redirect "http://www.domain.net/"
+      }
+  }
+}

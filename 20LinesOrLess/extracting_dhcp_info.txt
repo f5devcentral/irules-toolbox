@@ -1,0 +1,20 @@
+when CLIENT_DATA {
+  binary scan [UDP::payload] x240H* dhcp_option_payload
+  set option 0
+  set option_length [expr {([UDP::payload length] -240) * 2 }]
+  for {set i 0} {$option != 52 && $i < $option_length} {incr i [expr { $length * 2 +2 }]} {
+    binary scan $dhcp_option_payload x[expr $i]a2 option
+    incr i 2
+    binary scan $dhcp_option_payload x[expr $i]a2 length_hex
+    set length [expr 0x$length_hex]
+  }
+  if { $i < $option_length } {
+    incr i -[expr { $length * 2 -2 }]
+    binary scan $dhcp_option_payload x[expr $i]a2 length_hex
+    set length [expr 0x$length_hex]
+    incr i 2
+    binary scan $dhcp_option_payload x[expr $i]a[expr { $length * 2 }] circuit_id
+  } else {
+    drop
+  }
+}

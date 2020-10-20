@@ -1,0 +1,8 @@
+when CLIENTSSL_DATA {
+  if { [SSL::payload] contains "the query string" } {
+      log local0. "I got the query!"
+      SSL::release
+  } else {
+      SSL::collect
+  }
+}

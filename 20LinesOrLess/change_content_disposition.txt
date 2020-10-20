@@ -1,0 +1,10 @@
+when HTTP_REQUEST {
+  set querystring URI::query
+ }
+
+ when HTTP_RESPONSE {
+  if { $querystring contains "attachment=1" } {
+   HTTP::header replace Content-Disposition [string map -nocase "inline attachment" [HTTP::header Content-Disposition]]
+  }
+
+ }

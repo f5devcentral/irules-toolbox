@@ -1,0 +1,7 @@
+when HTTP_REQUEST {
+  if { [TCP::local_port] == 443 } {
+    HTTP::header insert SSL 1
+  } else {
+    HTTP::header insert SSL 0}
+  }
+}

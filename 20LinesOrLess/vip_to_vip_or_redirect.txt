@@ -1,0 +1,18 @@
+# 302 Redirect
+when HTTP_REQUEST {
+    if { ...some condition... } {
+        HTTP::redirect "https://somewhere.else.com"
+    }
+}
+# 301 Redirect
+when HTTP_REQUEST {
+    if { ...some condition... } {
+        HTTP::respond 301 Location "https://somewhere.else.com"
+    }
+}
+# Vip-to-Vip direct
+when HTTP_REQUEST {
+    if { ...some condition... } {
+        virtual internal-vs
+    }
+}

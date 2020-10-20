@@ -1,0 +1,18 @@
+when HTTP_REQUEST {
+  set usessl 0
+     switch -glob [string tolower[HTTP::path]] {
+       "/main*" {
+           pool beta__pool
+           set usessl 1
+         }
+       default {
+           pool alpha_pool
+           set usessl 0
+         }
+       }
+   }
+when SERVER_CONNECTED {
+  if { $usessl == 0 } {
+    SSL::disable
+  }
+}

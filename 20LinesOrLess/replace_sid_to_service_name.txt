@@ -1,0 +1,18 @@
+when CLIENT_ACCEPTED {
+  TCP::collect
+}
+when CLIENT_DATA {
+  set sid_match 0
+  if { [TCP::payload] contains "CONNECT_DATA=" } {
+    set sid_match 1
+    log local0. "original payload = [TCP::payload]"
+    set service_name "SERVICE_NAME=MYSERVICENAME"
+    if { [regsub -all -nocase "SID=MYSID" [TCP::payload] "$service_name" newdata] } {
+      TCP::payload replace 0 [TCP::payload length] ""
+      TCP::payload replace 0 0 $newdata
+      log local0. "replaced payload = $newdata"
+    }
+  }
+  TCP::release
+  TCP::collect
+}

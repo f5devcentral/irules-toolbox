@@ -1,0 +1,9 @@
+when HTTP_REQUEST {
+  STATS::incr StatsDemo inFlight
+  if { [STATS::get StatsDemo inFlight] > [STATS::get StatsDemo inFlightMax] } {
+    STATS::set StatsDemo inFlightMax [STATS::get StatsDemo inFlight]
+  }
+}
+when HTTP_RESPONSE {
+  STATS::incr StatsDemo inFlight -1
+}
