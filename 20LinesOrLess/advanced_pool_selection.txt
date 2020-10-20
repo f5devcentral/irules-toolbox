@@ -1,0 +1,32 @@
+when RULE_INIT {
+  # Log debug to /var/log/ltm? 1=yes, 0=no
+  set static::debug 0
+}
+when CLIENT_ACCEPTED {
+  # Save the VS default pool name before it's changed
+  set default_pool "defpool01"
+
+  # set the data group name
+  set clname "AppVersion[virtual name]"
+}
+
+when HTTP_REQUEST {
+  # if there isn't a data group with the above name, set the pool to default and exit
+  if {[class exists $clname]} {
+
+    # Search the datagroup for a name that starts with the URI
+    set pool_name [class search -value $clname starts_with [HTTP::uri]]
+
+    if { $pool_name eq ""} {
+      # we don't match the context roots in the data class
+      if { $static::debug } { log local0. "fell through to the default pool" }
+      pool $default_pool
+    } else {
+      if { $static::debug } { log local0. "Matched $app_pool" }
+        pool $app_pool
+      }
+    } else {
+      if { $static::debug } { log local0. "Data group $clame not found, using default_pool $default_pool"
+        pool $default_pool
+    }
+}

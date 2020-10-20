@@ -1,0 +1,23 @@
+when RULE_INIT {
+     set ::count 0
+   }
+
+ when CLIENT_ACCEPTED {
+    if { [active_members pool_a] > 0 } {
+       pool pool_a
+      log local0. "primary active"
+    if { $::count == 1 } {
+        log "clean sessions"
+       set ::count 0 }
+
+    } else {
+       pool pool_b
+  log local0. "secondary active"
+  set ::count 1
+    }
+ }
+ when LB_FAILED {
+    pool pool_b
+  set ::count 1
+  log local0. "Selected member: [LB::server addr]"
+ }

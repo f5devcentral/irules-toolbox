@@ -1,0 +1,7 @@
+when CLIENT_ACCEPTED {
+  if {[TCP::local_port] >= 8000 && [TCP::local_port] <= 8020}{
+    pool mypool_[TCP::local_port]
+  } else {
+      drop
+  }
+}

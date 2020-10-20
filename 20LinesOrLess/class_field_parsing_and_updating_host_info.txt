@@ -1,0 +1,17 @@
+when HTTP_REQUEST {
+  #find a match using host+uri against the class and
+  #returns the whole string (field1 field2 field3)then
+  #set it as newURI variable.
+  set newURI "[findclass [HTTP::host][HTTP::uri] $::redlist]"
+  if { $newURI ne "" } {
+    # Parse the three fields in the matched datagroup line
+    scan $newURI {%s %s %s} unused host uri
+    #change host and uri
+    if {$host ne ""}{
+      HTTP::header replace Host $host
+    }
+    if {$uri ne ""}{
+      HTTP::uri $uri
+    }
+  }
+}

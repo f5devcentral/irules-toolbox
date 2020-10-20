@@ -1,0 +1,15 @@
+when HTTP_REQUEST {
+    # Check if host value has a colon
+    if {[HTTP::host] contains ":"}{
+       # Replace host header value with everything before the colon
+       HTTP::header replace Host "[getfield [HTTP::host] : 1]"
+    log local0. "[IP::client_addr]:[TCP::client_port]: Replace original host [HTTP::host] with [getfield [HTTP::host] : 1]"
+    }
+}
+when HTTP_RESPONSE {
+   # Check if response is a redirect
+   if {[HTTP::is_redirect]}{
+      # Replace :55555/ with / in the Location header
+      HTTP::header replace Location [string map {:55555/ /} [HTTP::header value Location]]
+   }
+}

@@ -1,0 +1,12 @@
+when HTTP_REQUEST {
+  if { [string tolower [HTTP::host][HTTP::uri]] contains "www.mcgill.ca/desautels" } {
+    switch -glob [string tolower [HTTP::header User-Agent]] {
+      "*blackberry*" -
+      "*iphone*" -
+      "*android*" -
+      "*windows phone os 7*" {
+        HTTP::redirect "http://desautels.mobilizeme.com"
+      }
+    }
+  }
+}

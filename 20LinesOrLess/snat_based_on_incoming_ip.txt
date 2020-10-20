@@ -1,0 +1,11 @@
+when CLIENT_ACCEPTED {
+  if { [IP::addr [IP::client_addr] equals 10.9.9.0/26] }{
+    snat 1.1.1.1
+  } elseif { [IP::addr [IP::client_addr] equals 10.9.9.65/26] }{
+      snat 2.2.2.2
+  } elseif { [IP::addr [IP::client_addr] equals 10.9.9.128/26] }{
+    snat 3.3.3.3
+  } else {
+    forward
+  }
+}

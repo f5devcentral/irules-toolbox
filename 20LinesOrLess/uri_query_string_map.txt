@@ -1,0 +1,11 @@
+when HTTP_REQUEST {
+  if { [HTTP::host] eq "red.x.com" } {
+    set q [URI::query [HTTP::uri] code]
+
+    if { $q ne "" } {
+      HTTP::uri [string map "$q red" [HTTP::uri]]
+    } else {
+      HTTP::uri "[HTTP::uri]&code=red"
+    }
+  }
+}

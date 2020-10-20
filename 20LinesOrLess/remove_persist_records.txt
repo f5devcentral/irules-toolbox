@@ -1,0 +1,5 @@
+when HTTP_REQUEST {
+  if {[HTTP::uri] contains "persist=0"} {
+    persist delete source_addr [IP::client_addr]
+  }
+}

@@ -1,0 +1,15 @@
+when HTTP_RESPONSE {
+   if { [HTTP::is_redirect] } {
+      if { [HTTP::header Location] contains "www.acme.com:10040" } {
+         log local0. "Original Location value: [HTTP::header Location]"
+         HTTP::header replace Location [string map -nocase {www.acme.com:10400 www.acme.com} [HTTP::header value Location]]
+      }
+   }
+}
+when HTTP_RESPONSE priority 501 {
+   if { [HTTP::is_redirect] } {
+
+      # Debug logging only. Remove this event once done testing
+      log local0. "Updated Location value: [HTTP::header Location]"
+   }
+}

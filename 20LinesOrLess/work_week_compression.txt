@@ -1,0 +1,12 @@
+when CLIENT_ACCEPTED {
+  set time_r [split [clock format [clock seconds] -format {%k:%M} ] " "]
+  set time_f [expr {[expr {[lindex $time_r 0]*100}] + [lindex $time_r 1]}]
+  if { not(($time_f >= 800) && ($time_f <= 1700)) } {
+    set compression "off"
+  }
+}
+when HTTP_RESPONSE {
+  if { $compression eq "off" } {
+    COMPRESS::disable
+  }
+}

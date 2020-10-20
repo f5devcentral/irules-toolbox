@@ -1,0 +1,11 @@
+when HTTP_RESPONSE {
+  # Check if server response is a redirect
+  if { [HTTP::header is_redirect]} {
+    # Log original and updated values
+    log local0. "Original Location header value: [HTTP::header value Location],\
+           updated: [string map -nocase "http:// https:// :80/ /" [HTTP::header value Location]]"
+    # Do the update, replacing http:// with https:// and  :80/ with /
+    HTTP::header replace Location \
+        [string map -nocase "http:// https:// :80/ /" [HTTP::header value Location]]
+  }
+}

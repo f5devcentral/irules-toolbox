@@ -1,0 +1,20 @@
+when SERVER_CONNECTED {
+  set Debug 1
+  set Collect_Len 3
+  TCP::collect $Collect_Len
+}
+when SERVER_DATA {
+  set Buf_Len [TCP::offset]
+  if { $Buf_Len < 3 } {
+    incr Collect_Len -$Buf_Len
+    TCP::collect $Collect_Len
+    return
+  }
+  binary scan [TCP::payload] cS Rec_Type Version
+  if { $Version <= 768 } {
+    log local0. "stop_ssl3: Rejecting SSL3 or lower connection attempt from [IP::client_addr]"
+    reject
+  } else {
+    TCP::release
+  }
+}

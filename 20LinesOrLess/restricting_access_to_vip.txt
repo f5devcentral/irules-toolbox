@@ -1,0 +1,25 @@
+# This is an LTM policy, not an iRule
+ltm policy http.redirects {
+    controls { forwarding }
+    requires { http }
+    rules {
+        require_fqdn {
+            actions {
+                0 {
+                    forward
+                    reset
+                }
+            }
+            conditions {
+                0 {
+                    http-host
+                    host
+                    not
+                    values { my.domain.com }
+                }
+            }
+            ordinal 1
+        }
+    }
+    strategy all-match
+}

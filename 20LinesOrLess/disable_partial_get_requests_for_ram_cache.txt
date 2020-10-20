@@ -1,0 +1,5 @@
+when CACHE_RESPONSE {
+  if { [HTTP::uri] ends_with ".pdf" } {
+    HTTP::header remove "Accept-Ranges"
+  }
+}

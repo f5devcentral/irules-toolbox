@@ -1,0 +1,12 @@
+when HTTP_REQUEST {
+  set uri [HTTP::uri]
+}
+
+when HTTP_RESPONSE {
+  if { [matchclass $uri ends_with $::cache_5min] } {
+    HTTP::header replace "Cache-Control" "max-age=500"
+  } elseif { [matchclass $uri ends_with $::cache_60min] } {
+    HTTP::header replace "Cache-Control" "max-age=3600"
+  }
+
+}

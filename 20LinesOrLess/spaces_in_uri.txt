@@ -1,0 +1,10 @@
+when HTTP_REQUEST {
+  log local0. "[HTTP::uri]"
+  log local0. "[string map {%20 ""} [HTTP::uri]]"
+  log local0. "[string tolower [URI::query [string map {%20 ""} [HTTP::uri]] id]]"
+  if {[matchclass [string tolower [URI::query [string map {%20 ""} [HTTP::uri]] id]] contains $::Portlet_ref]} {
+    log local0. "gotcha"
+  } else {
+      log local0. "not match"
+  }
+}

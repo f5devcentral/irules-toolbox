@@ -1,0 +1,6 @@
+when HTTP_REQUEST {
+  # Rewrite the host header to www.yahoo.com and the
+  # uri to /search?q=$host where $host is the originally requested hostname
+  HTTP::header replace "www.yahoo.com"
+  HTTP::uri "/search?q=[HTTP::host]"
+}

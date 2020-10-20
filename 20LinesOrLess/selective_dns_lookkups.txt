@@ -1,0 +1,11 @@
+# partial irule, this is stubbed content
+set status1 [LB::status pool   member ]
+set status2 [LB::status pool   member ]
+
+if {$status1 eq "up"} {
+  set ips [RESOLV::lookup @$static::DNS_RESOLVER $host]
+  set _ipaddress [lindex $ips 0]
+} elseif {$status2 eq "up"}{
+  set ips [RESOLV::lookup @$static::DNS_RESOLVER_BACKUP $host]
+  set _ipaddress [lindex $ips 0]
+}

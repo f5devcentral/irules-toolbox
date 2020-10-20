@@ -1,0 +1,8 @@
+when HTTP_REQUEST {
+  if {[active_members [LB::server pool]] < 1} {
+    switch [HTTP::uri] {
+      "/" { HTTP::respond 200 content [ifile get "index"] }
+      "/f5-logo.jpg" { HTTP::respond 200 content [ifile get "logo"] }
+    }
+  }
+}

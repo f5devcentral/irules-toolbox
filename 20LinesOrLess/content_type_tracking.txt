@@ -1,0 +1,24 @@
+# First, create statistics profile named "ContentType" with following entries:
+#   HTML
+#   Images
+#   Scripts
+#   Documents
+#   Stylesheets
+#   Other
+# Now associate this Statistics Profile to the virtual server.  Then apply the following iRule.
+# To view the results, go to Statistics -> Profiles - Statistics
+
+when HTTP_RESPONSE {
+   switch -glob [HTTP::header "Content-type"] {
+      image/*         { STATS::incr "ContentType" "Images" }
+      text/html       { STATS::incr "ContentType" "HTML" }
+      text/css        { STATS::incr "ContentType" "Stylesheets" }
+      *javascript     { STATS::incr "ContentType" "Scripts" }
+      text/vbscript   { STATS::incr "ContentType" "Scripts" }
+      application/pdf { STATS::incr "ContentType" "Documents" }
+      application/msword { STATS::incr "ContentType" "Documents" }
+      application/*powerpoint { STATS::incr "ContentType" "Documents" }
+      application/*excel { STATS::incr "ContentType" "Documents" }
+      default         { STATS::incr "ContentType" "Other" }
+   }
+}

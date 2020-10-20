@@ -1,0 +1,12 @@
+when STREAM_MATCHED {
+  # log each match found by the stream filter
+  scan [STREAM::match] "Username=%s" user
+  log local0. "Username [b64decode $user] had password replaced"
+  STREAM::replace "Username=$user\nUserpassword=0000=\n"
+}
+
+
+when LB_SELECTED  {
+set serverIP [LB::server addr]
+log local0. "LB Server IP $serverIP"
+}

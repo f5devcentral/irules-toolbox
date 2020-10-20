@@ -1,0 +1,16 @@
+### NOTE ###
+# You should look into the after command instead
+#
+when CLIENT_ACCEPTED {
+   set loop 0
+}
+when HTTP_REQUEST {
+   if {[active_members primarypool] == 0} {
+     if { $loop == 0} {
+       set first [clock seconds]
+       set loop 1
+     } elseif { [expr [clock seconds] - $first] >= 600} {
+       pool backuppool
+     }
+   }
+}

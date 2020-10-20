@@ -1,0 +1,24 @@
+  1: # Example which replaces http:// with https:// in response content
+   2: # Prevents server compression in responses
+   3: when HTTP_REQUEST {
+   4:
+   5:    # Disable the stream filter for all requests
+   6:    STREAM::disable
+   7:
+   8:    # LTM does not uncompress response content, so if the server has compression enabled
+   9:    # and it cannot be disabled on the server, we can prevent the server from
+  10:    # sending a compressed response by removing the compression offerings from the client
+  11:    HTTP::header remove "Accept-Encoding"
+  12: }
+  13: when HTTP_RESPONSE {
+  14:
+  15:    # Check if response type is text
+  16:    if {[HTTP::header value Content-Type] contains "text"}{
+  17:
+  18:       # Replace http:// with https://
+  19:       STREAM::expression {@http://@https://@}
+  20:
+  21:       # Enable the stream filter for this response only
+  22:       STREAM::enable
+  23:    }
+  24: }

@@ -1,0 +1,23 @@
+when HTTP_RESPONSE {
+    # Insert some test response headers
+    HTTP::header insert Set-Cookie {SESSIONID=AAAAAAAA; domain=.domain.com; path=/path/1}
+    HTTP::header insert Set-Cookie {keeper=don't delete; domain=.domain.com; path=/path/2}
+    HTTP::header insert Set-Cookie {SESSIONID=BBBBBBBB; domain=.domain.com; path=/path/3}
+    HTTP::header insert Set-Cookie {SESSIONID=CCCCCCCC; domain=.domain.com; path=/path/4}
+    log local0. "Set-Cookie header values: [HTTP::header values Set-Cookie]"
+    log local0. "First Set-Cookie header which starts with SESSIONID: [lsearch -glob -inline [HTTP::header values Set-Cookie] "SESSIONID*"]"
+    log local0. "Last  Set-Cookie header which starts with SESSIONID: [lsearch -glob -inline -start end [HTTP::header values Set-Cookie] "SESSIONID*"]"
+
+    set set_cookie_header [lsearch -glob -inline -start end [HTTP::header values Set-Cookie] "SESSIONID*"]
+    log local0. "\$set_cookie_header: $set_cookie_header"
+
+    # Remove all SESSIONID cookies
+    while {[HTTP::cookie exists SESSIONID]}{
+      HTTP::cookie remove SESSIONID
+    }
+    log local0. "Set-Cookie values: [HTTP::header values Set-Cookie]"
+
+    # Re-insert the last SESSIONID Set-Cookie header
+    HTTP::header insert Set-Cookie $set_cookie_header
+    log local0. "SESSIONID cookie: [HTTP::cookie SESSIONID]"
+}

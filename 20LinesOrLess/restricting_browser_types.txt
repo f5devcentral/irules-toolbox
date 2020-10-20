@@ -1,0 +1,7 @@
+when HTTP_REQUEST {
+  # Check if the UA header does not contain MSIE
+  if { not ([HTTP::header "User-Agent"] contains "MSIE") } {
+    # Send an HTTP response indicating the UA isn't allowed?
+    HTTP::respond 200 content {your browser isn't allowed}
+  }
+}

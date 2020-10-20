@@ -1,0 +1,9 @@
+when HTTP_REQUEST {
+ set ver tcl_platform(osVersion)
+ if { ($ver starts_with "11.5") or ($ver starts_with "11.6") {
+   HTTP::host "nik-int.test.com"
+ } else {
+   HTTP::header replace Host "nik-int.test.com"
+ }
+ HTTP::uri "/media[HTTP::uri]"
+}

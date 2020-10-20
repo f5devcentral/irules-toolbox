@@ -1,0 +1,9 @@
+when HTTP_REQUEST {
+  if { [HTTP::path] equals "/" }{
+    if { not ([string tolower [HTTP::query]] starts_with "user=soviet") }{
+      if { [HTTP::header "User-Agent"] contains "soviet" }{
+        HTTP::redirect "http://soviet.com/"
+      }
+    }
+  }
+}

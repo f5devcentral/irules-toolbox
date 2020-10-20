@@ -1,0 +1,17 @@
+when HTTP_REQUEST {
+  switch -glob [string tolower [getfield [HTTP::host] ":" 1][HTTP::uri]] {
+    "www.liveapp.customer.co.uk/app2easypath_" {
+      HTTP::path [string map { /app2easypath /realpath } [HTTP::path]] };
+      SSL::disable serverside;
+      pool CUST1-WEB-PROD-APP2-Pool;
+    }
+    "www.testapp.customer.co.uk/app2easypath_" {
+      HTTP::path [string map { /app2easypath /realpath } [HTTP::path]] };
+      SSL::disable serverside;
+      pool CUST1-WEB-PROD-APP2-test-Pool;
+    }
+    default {
+      HTTP::redirect http://www.google.com}
+    }
+  }
+}

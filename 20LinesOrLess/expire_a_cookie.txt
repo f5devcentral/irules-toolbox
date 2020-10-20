@@ -1,0 +1,3 @@
+when HTTP_RESPONSE {
+  HTTP::header insert Set-Cookie "mycookie=xx; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; HttpOnly"
+}

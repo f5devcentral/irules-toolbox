@@ -1,0 +1,19 @@
+when CLIENT_ACCEPTED {
+  # Is client IP address defined in the FE datagroup?
+  if { [class match [IP::client_addr] equals sj01-fe-servers] }{
+    # Log the client IP address:port -> destination IP address:port
+    log local0. "admin request accepted from client: \
+      [IP::client_addr]:[TCP::client_port] -> [IP::local_addr]:[TCP::local_port]"
+  } elseif { [class match [IP::client_addr] equals sj01-strongmail-servers] }{
+      # Client IP address is defined in the strongmail datagroup
+      # Log the client IP address:port -> destination IP address:port
+      log local0. "restricted client request accepted from client: \
+        [IP::client_addr]:[TCP::client_port] -> [IP::local_addr]:[TCP::local_port]"
+  } else {
+      # Request didn't match the conditions for allowing the request
+      # Log the client IP address:port -> destination IP address:port
+      log local0. "unknown request rejected from client: \
+        [IP::client_addr]:[TCP::client_port] -> [IP::local_addr]:[TCP::local_port]"
+      drop
+  }
+}

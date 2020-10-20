@@ -1,0 +1,10 @@
+when CLIENT_ACCEPTED {
+  if {[active_members yourpoolname] == 0 } {
+    TCP::collect
+  }
+}
+when CLIENT_DATA {
+  TCP::payload replace 0 [TCP::payload length] "down"
+  node 10.10.10.1 12000
+  TCP::release
+}

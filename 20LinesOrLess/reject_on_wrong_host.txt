@@ -1,0 +1,1 @@
+if {not ([HTTP::host] eq "www.example.com")} { reject }

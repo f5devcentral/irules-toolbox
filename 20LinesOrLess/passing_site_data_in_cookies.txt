@@ -1,0 +1,11 @@
+when HTTP_REQUEST {
+  if { [URI::query [HTTP::uri] data] ne "" } {
+    set data [b64decode [URI::decode [URI::query [HTTP::uri] data]]]
+  }
+}
+when HTTP_RESPONSE {
+  if { [info exists data] } {
+    HTTP::cookie insert name "data-from-other-site" value $data
+    unset data
+  }
+}

@@ -1,0 +1,10 @@
+when CLIENT_ACCEPTED {
+ TCP::respond "220\r\n"
+ TCP::collect
+ }
+when CLIENT_DATA {
+ set clientpayload [string tolower[TCP::payload]]
+ if { $clientpayload contains "ehlo abcd-pc" } {
+  reject
+ }
+}

@@ -1,0 +1,28 @@
+proc ip2int { ip } {
+  set octets [split $ip .]
+  set ipint [expr {(256 * 256 * 256 * [lindex $octets 0]) + (256 * 256 * [lindex $octets 1]) + (256 * [lindex $octets 2]) + [lindex $octets 3]}]
+  return $ipint
+}
+
+proc random { max } {
+  return [expr {int(rand()*($max+1))}]
+}
+
+when RULE_INIT {
+  set static::snat_list {}
+  foreach elm [class get snat_class] {
+    scan [lindex $elm 0] {%[^/]/%s} ip mask
+    set st [IP::addr $ip mask $mask]
+    set num [expr {[call ip2int 255.255.255.255] - [call ip2int $mask] + 1}]
+    for {set i 0} {$i < $num} {incr i} {
+      set t [expr {[call ip2int $ip] + $i}]
+      lappend static::snat_list [IP::addr parse -ipv4 [binary format I $t]]
+    }
+  }
+  set static::snat_len [llength $static::snat_list]
+  unset elm ip mask st num i t
+}
+
+when CLIENT_ACCEPTED {
+  snat [lindex $static::snat_list [call random $static::snat_len]]
+}

@@ -1,0 +1,10 @@
+when CLIENT_ACCEPTED {
+  if { [class match [IP::client_addr] equals "sslv3_allowed"] } {
+    SSL::profile sslv3_enabled
+  } else {
+      SSL::profile sslv3_disabled
+  }
+}
+when HTTP_REQUEST {
+  SSL::renegotiate
+}

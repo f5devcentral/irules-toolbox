@@ -1,0 +1,13 @@
+when CLIENT_ACCEPTED {
+  switch [TCP::local_port] {
+    "443" {
+      set proto "https"
+    }
+    "80" {
+      set proto "http"
+    }
+  }
+}
+when HTTP_REQUEST {
+  HTTP::header insert VS_HTTP_PROTO $PROTO
+}

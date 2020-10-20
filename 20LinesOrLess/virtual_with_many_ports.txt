@@ -1,0 +1,10 @@
+when HTTP_REQUEST {
+  switch -glob [string tolower [HTTP::uri]] {
+    "*hypplanning*" {
+      node 10.x.x.x%x:x
+    }
+    "*drmservice*" {
+      node 10.x.x.x%x:y
+    }
+  }
+}

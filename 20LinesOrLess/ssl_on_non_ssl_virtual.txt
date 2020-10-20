@@ -1,0 +1,18 @@
+when HTTP_REQUEST {
+  HTTP::header replace ClientIP [IP::remote_addr]
+  if {[PROFILE::exists clientssl] == 1} {
+    set cname "SSL::cipher name"
+    set cbits "SSL::cipher bits"
+    set cver "SSL::cipher version"
+    HTTP::header replace SSLCipher [eval $cname]:[eval $cbits]-[eval $cver]
+    if { [SSL::cert count] > 0} {
+      HTTP::header replace SSLSubject [b64encode [X509::subject [SSL::cert 0]]]
+      HTTP::header replace SSLClientCert [b64encode [SSL::cert 0]]
+      HTTP::header replace WebProtocol "HTTPS-auth"
+    } else {
+      HTTP::header replace WebProtocol "HTTPS"
+    }
+  } else {
+    HTTP::header replace WebProtocol "HTTP"
+  }
+}

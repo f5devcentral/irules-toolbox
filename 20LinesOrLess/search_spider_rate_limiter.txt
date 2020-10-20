@@ -1,0 +1,22 @@
+when RULE_INIT {
+  array set ::active_crawlers { }
+  set ::min_interval 1
+}
+
+when HTTP_REQUEST {
+  set user_agent [string tolower [HTTP::header "User-Agent"]]
+  # Logic only relevant for crawler user agents
+  if { [matchclass $user_agent contains $::Crawlers] } {
+    # Throttle crawlers.
+    set curr_time [clock seconds]
+    if { [info exists ::active_crawlers($user_agent)] } {
+      if { [ $::active_crawlers($user_agent) < $curr_time ] } {
+        set ::active_crawlers($user_agent) [expr {$curr_time + $::min_interval}]
+      } else {
+        reject
+      }
+    } else {
+      set ::active_crawlers($user_agent) [expr {$curr_time + $::min_interval}]
+    }
+  }
+}

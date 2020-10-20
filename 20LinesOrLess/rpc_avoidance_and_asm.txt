@@ -1,0 +1,7 @@
+when HTTP_CLASS_SELECTED {
+  if { [string tolower [HTTP::uri]] starts_with "/rpc" } {
+    ASM::disable
+  } else {
+    ASM::enable
+  }
+}

@@ -1,0 +1,7 @@
+when HTTP_REQUEST {
+  # Check if Host contains a colon
+  if {[HTTP::host] contains ":"}{
+    # Redirect client to requested host minus the port and preserve the original URI
+    HTTP::redirect "https://[getfield [HTTP::host] ":" 1][HTTP::uri]"
+  }
+}

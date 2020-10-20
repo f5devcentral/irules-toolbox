@@ -1,0 +1,18 @@
+when HTTP_REQUEST {
+
+    # For a load balancing selection from the VIPs default pool
+    # This assumes you've set the pool's load balancing algorithm to round robin
+    switch [LB::select] {
+       "1.1.1.1" {
+          # Send client a 302 redirect with the hostname which corresponds to the 1.1.1.1 server IP
+          HTTP::respond 302 Location "http://firsthost.domain.com" Cache-Control No-Cache Pragma No-Cache
+       }
+       "2.2.2.2" {
+          # Send client a 302 redirect with the hostname which corresponds to the 2.2.2.2 server IP
+          HTTP::respond 302 Location "http://secondhost.domain.com" Cache-Control No-Cache Pragma No-Cache
+       }
+       default {
+          # Take some default action if both servers are marked down?
+       }
+    }
+ }

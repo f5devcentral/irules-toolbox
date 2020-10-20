@@ -1,0 +1,14 @@
+when HTTP_RESPONSE {
+
+    # Remove all instances of the Server header
+    HTTP::header remove Server
+
+    # Remove all headers starting with x-
+    foreach header_name [HTTP::header names] {
+
+       if {[string match -nocase x-* $header_name]}{
+
+          HTTP::header remove $header_name
+       }
+    }
+ }

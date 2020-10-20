@@ -1,0 +1,7 @@
+when HTTP_REQUEST {
+  set qry [HTTP::query]
+  set id [URI::query "?$qry" "id"]
+  if { $id ne "" } {
+    HTTP::query [string map [list id=$id entityid=$id] $qry]
+  }
+}

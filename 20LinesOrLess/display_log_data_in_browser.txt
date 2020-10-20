@@ -1,0 +1,25 @@
+when RULE_INIT {
+  set static::webShowLog 1
+  set static::webLogFrom "x.x.x.x"
+}
+when CLIENT_ACCEPTED {
+  set webLogMsg "Client Port: [TCP::client_port]"
+}
+when HTTP_REQUEST {
+  append webLogMsg "HTTP URI: [HTTP::uri]"
+}
+when HTTP_RESPONSE {
+  if {($static::webShowLog) && ([IP::client_addr] equals $static::webLogFrom) && ([info exists webLogMsg]) } {
+    if {[HTTP::header "Content-Length"] > 2000} {
+      HTTP::collect 2000
+    } else {
+        HTTP::collect [HTTP::header "Content-Length"]
+    }
+  }
+}
+when HTTP_RESPONSE_DATA {
+  regexp -indices {(?i)<body[^>]*>} [HTTP::payload] BodyLocation
+  HTTP::payload replace [lindex $BodyLocation 1] 1 [concat {><div style="border: 1px solid blue;">} $webLogMsg {</div>}]
+  unset webLogMsg
+  HTTP::release
+}

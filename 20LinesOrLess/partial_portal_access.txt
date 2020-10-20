@@ -1,0 +1,10 @@
+when HTTP_REQUEST {
+  if { !([matchclass [IP::client_addr] equals $::InternalIPs])} {
+    if {[scan [URI::decode [string tolower [HTTP::uri]]] "/default.aspx?tabid=%d" tabid] == 1 } {
+      if { [matchclass $tabid equals $::intranet_pages] } {
+        drop
+        log local0. "Dropped request from IP:  [IP::client_addr]"
+      }
+    }
+  }
+}

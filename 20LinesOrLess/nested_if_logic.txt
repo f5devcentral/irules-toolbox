@@ -1,0 +1,15 @@
+when HTTP_REQUEST {
+  if {[class match [IP::client_addr] eq test_dg] } {
+    if {[HTTP::uri] contains "/cf/" or [HTTP::uri] contains "/hf/"} {
+      pool PoolA
+    } else {
+      pool PoolB
+    }
+  } elseif {[HTTP::uri] contains "/cf/" or [HTTP::uri] contains "/hf/" } {
+    pool PoolC
+  } elseif {[HTTP::uri] contains "/vh/"} {
+    pool PoolD
+  } else {
+    pool Default
+  }
+}

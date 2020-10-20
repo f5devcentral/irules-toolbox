@@ -1,0 +1,16 @@
+when CLIENT_ACCEPTED {
+  TCP::collect 65
+}
+when CLIENT_DATA {
+  # use pool2 by default
+  pool test_pool2
+  set mero [TCP::payload 15]
+  # Start reading at the 5th byte and save 6 characters to $match
+  if {[binary scan $mero x5a6 match] == 1}{
+    log local0. "Matched $match"
+    if { $match eq "000001" } {
+      pool test_pool1
+    }
+  }
+  TCP::release
+}

@@ -1,0 +1,21 @@
+when CLIENT_ACCEPTED {
+  set key "[IP::client_addr]:[TCP::client_port]"
+}
+
+when LB_SELECTED {
+  set tbl "connlimit:[LB::server]"
+
+  table set -subtable $tbl $key "ignored" 180
+  if { [table keys -subtable $tbl -count] > 5 } {
+    table delete -subtable $tbl $key
+    event CLIENT_CLOSED disable
+    reject
+  } else {
+    set timer [after 60000 -periodic { table lookup -subtable $tbl $key }]
+  }
+}
+
+when CLIENT_CLOSED {
+  after cancel $timer
+  table delete -subtable $tbl $key
+}

@@ -1,0 +1,15 @@
+when RULE_INIT {
+  set static::whichone 0
+}
+when HTTP_REQUEST {
+  switch $static::whichone {
+    0 {
+      HTTP::redirect "http://Server1/blah"
+      set static::whichone 1
+    }
+    default {
+      HTTP::redirect "http://Server2/blah"
+      set static::whichone 0
+    }
+  }
+}

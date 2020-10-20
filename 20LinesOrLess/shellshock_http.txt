@@ -1,0 +1,17 @@
+when HTTP_REQUEST {
+  set pattern "*() \{*";
+  if { [string match $pattern [HTTP::uri]] } {
+    log local0. "Detected CVE-2014-6271 attack from '[IP::client_addr]' in URI '[HTTP::uri]'";
+    reject;
+  } else {
+    foreach header_name [HTTP::header names] {
+      foreach header_value [HTTP::header values $header_name] {
+        if { [string match $pattern $header_value] } {
+          log local0. "Detected CVE-2014-6271 attack from '[IP::client_addr]' in HTTP Header $header_name = '$header_value'; URI = '[HTTP::uri]'";
+          reject;
+          break;
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+when CLIENT_ACCEPTED {
+  log local0. ""
+  TCP::respond "OK"
+  TCP::close
+  event disable all
+}
+when CLIENT_CLOSED {
+  log local0. ""
+}

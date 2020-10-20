@@ -1,0 +1,9 @@
+when HTTP_REQUEST {
+  set my_uri [string tolower [HTTP::uri]]
+  if { $my_uri starts_with "/secure" } {
+    pool ssl__pool
+  } else {
+    SSL::disable serverside
+  pool static_pool
+  }
+}

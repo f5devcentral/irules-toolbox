@@ -1,0 +1,19 @@
+when HTTP_REQUEST {
+  set replace_content 0
+  if {[HTTP::uri] contains "/atoz/"} {
+    set replace_content 1
+  }
+}
+when HTTP_RESPONSE {
+  if { $replace_content } {
+    # Disable the stream filter by default
+    STREAM::disable
+    # Check if response type is text
+    if {[HTTP::header value Content-Type] contains "text" and [HTTP::header "User-Agent"] contains "***"}{
+      # Replace
+      STREAM::expression "@123@xyz@ @456@xyz@"
+      # Enable the stream filter for this response only
+      STREAM::enable
+    }
+  }
+}

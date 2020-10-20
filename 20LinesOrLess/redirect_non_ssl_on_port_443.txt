@@ -1,0 +1,14 @@
+when HTTP_REQUEST {
+  # Check if the client used an SSL cipher
+  if {not ([catch {SSL::cipher version} result]) && $result ne "none"}{
+    # Client did use a cipher
+    log local0. "\$result: $result. Allowing encrypted request."
+    if {[HTTP::path] eq "/"}{
+      HTTP::redirect "https://[getfield [HTTP::host] : 1]/Login.jsp"
+    }
+  } else {
+    # Client did not use a cipher
+    log local0. "\$result: $result. Redirecting unencrypted request."
+     HTTP::redirect "https://[getfield [HTTP::host] : 1]/Login.jsp"
+  }
+}

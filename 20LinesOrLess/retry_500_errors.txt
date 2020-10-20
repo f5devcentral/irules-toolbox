@@ -1,0 +1,17 @@
+when HTTP_REQUEST {
+  set my_url [HTTP::host][HTTP::uri]
+  if { [HTTP::cookie BIGIP] contains "Redirect" } {
+    set count [findstr [HTTP::cookie BIGIP] "Redirect_" 9 1]
+  } else {
+      set count 0
+  }
+}
+when HTTP_RESPONSE {
+  if { [HTTP::status] == 500 && $count < 4 } {
+    incr count
+    HTTP::respond 302 Location "http://$my_url" Set-Cookie "BIGIP=Redirect_$count" Connection "Close"
+  } elseif { [HTTP::status] == 500 && $count == 4 } {
+      set count 0
+      HTTP::respond 404 Set-Cookie "BIGIP=Not_Found" Connection "Close"
+  }
+}

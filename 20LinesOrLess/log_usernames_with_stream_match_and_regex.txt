@@ -1,0 +1,12 @@
+when STREAM_MATCHED {
+# log each match found by the stream filter
+log local0. "Stream filter matched:[STREAM::match]"
+  set myvar [STREAM::match]
+  set 4 "blah"
+  regexp {Username=(.+)\sUserpassword=(.+)\sUseremail=(.+)\sUserhomefolder=(.+)\s} $myvar matched sub1 sub2 sub3
+  log local0. "Username=[b64decode $sub1] Userpassword=[b64decode $sub2] Usermail=[b64decode $sub3]"
+}
+when LB_SELECTED  {
+set serverIP [LB::server addr]
+log local0. "LB Server IP $serverIP"
+}

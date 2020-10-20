@@ -1,0 +1,25 @@
+when CLIENT_ACCEPTED {
+   TCP::collect
+}
+when CLIENT_DATA {
+  set idx [string first " HTTP/1." [TCP::payload]]
+  if { $idx < 0 } {
+    if { [TCP::payload length] > 2048 } {
+      log local0. "ERROR! Could not find HTTP request in 2K! dropping..."
+      reject
+    } else {
+        # Not enough data yet; collect more
+        TCP::collect
+    }
+    return
+  }
+  set request [string tolower [TCP::payload $idx]]
+  log local0. "Got request: $request"
+  if { $request contains " /XXXXX" } {
+    log local0. "Sending to Pool_XXXXX"
+    pool Pool_XXXXX
+  } else {
+      log local0. "Sending to Pool_WWWWW"
+      pool Pool_WWWWW
+  }
+}

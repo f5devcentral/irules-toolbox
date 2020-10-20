@@ -1,0 +1,16 @@
+when RULE_INIT {
+  set static::START_OFF_TIME "09:30 AM"
+  set static::END_OFF_TIME "10:00 AM"
+  set static::DOWN_POOL "local-pool"
+  set static::DOWN_MEMBERS [list "10.70.0.1 80" "10.70.0.2 80"]
+}
+when CLIENT_ACCEPTED {
+  set start_off_time [clock scan $static::START_OFF_TIME]
+  set end_off_time [clock scan $static::END_OFF_TIME]
+  set now [clock seconds]
+  if { ( [expr $now > $start_off_time] ) and ( [expr $now < $end_off_time] ) } {
+    foreach x $static::DOWN_MEMBERS {
+      LB::down pool $static::DOWN_POOL member [lindex $x 0] [lindex $x 1]
+    }
+  }
+}

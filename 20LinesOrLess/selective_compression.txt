@@ -1,0 +1,11 @@
+when HTTP_REQUEST {
+  set nocompress 0
+  log local0. "comp enabled default "
+  if {[class match [string tolower [HTTP::uri]] ends_with ok_extension] or [class match [string tolower [HTTP::uri]] contains compress_dir ] and not [class match [IP::remote_addr] equals no_compress_ip ] } {
+    set nocompress 0
+    log local0. "set to 0 for ok_extension or compress_dir or ip [IP::remote_addr]"
+  } elseif {[class match [string tolower [HTTP::uri]] ends_with no_extension] or [class match [string tolower [HTTP::uri]] contains no_compress_dir ] or [class match [IP::remote_addr] equals no_compress_ip ] } {
+    set nocompress 1
+    log local0. "set to 1 for no_extension or no_compress_dir or your ip [IP::remote_addr]"
+  }
+}

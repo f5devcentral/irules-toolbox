@@ -1,0 +1,51 @@
+when CLIENT_ACCEPTED {
+  TCP::collect
+}
+when CLIENT_DATA {
+  set y1 [clock clicks -milliseconds]
+  for { set x 0 } { $x < 175000 } { incr x } { #do nothing }
+  TCP::release
+  TCP::collect
+}
+when SERVER_CONNECTED {
+  TCP::collect
+}
+when SERVER_DATA {
+  set j1 [clock clicks -milliseconds]
+  for { set z 0 } { $z < 175000 } { incr z } { #do nothing }
+  TCP::release
+  TCP::collect
+}
+
+
+
+
+### WITH LOG STATEMENTS TO SEE WHAT THE ACTUAL DELAY IS ###
+# when CLIENT_ACCEPTED {
+#   log local0. "Client Packet accepted"
+#   TCP::collect
+# }
+# when CLIENT_DATA {
+#   log local0. "Generating Client Lag"
+#   set y1 [clock clicks -milliseconds]
+#   for { set x 0 } { $x < 175000 } { incr x } {    #do nothing  }
+#   set time1 [expr [clock clicks -milliseconds] - $y1]
+#   log local0. "Client for loop time is $time1 milliseconds"
+#   log local0. "Client packet released"
+#   TCP::release
+#   TCP::collect
+# }
+# when SERVER_CONNECTED {
+#   log local0. "Server Packet accepted"
+#   TCP::collect
+# }
+# when SERVER_DATA {
+#  log local0. "Generating Server Lag"
+#   set j1 [clock clicks -milliseconds]
+#   for { set z 0 } { $z < 175000 } { incr z } {    #do nothing  }
+#   set time1 [expr [clock clicks -milliseconds] - $j1]
+#   log local0. "Server for loop time is $time1 milliseconds"
+#   log local0. "Server packet released"
+#   TCP::release
+#   TCP::collect
+# }

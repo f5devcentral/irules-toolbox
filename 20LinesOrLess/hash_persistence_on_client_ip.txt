@@ -1,0 +1,12 @@
+# Check if the active_members command returns an entry which can be split on a space into two variables
+# tcpip_header variable needs to be set with appropriate data for use here
+if {[active_members app_http_pool]}{
+   if {[scan [lindex [active_members –list app_http_pool] [expr {[md5 $tcip_header] % [active_members app_http_pool]}]] {%s %s} ip port] == 2}{
+      # Select the pool member IP and port
+      pool app_http_pool member $ip $port
+
+      # Exit from this event in this rule
+      return
+   }
+   # Take some default action if the pool is down or scan didn't parse the output?
+}

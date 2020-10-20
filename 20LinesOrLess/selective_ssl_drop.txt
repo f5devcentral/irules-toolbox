@@ -1,0 +1,8 @@
+when CLIENT_ACCEPTED {
+  SSL::disable serverside
+}
+when HTTP_REQUEST {
+  if { ![class match [string tolower [HTTP::path]] starts_with standard_http_dg] } {
+    SSL::enable serverside
+  }
+}

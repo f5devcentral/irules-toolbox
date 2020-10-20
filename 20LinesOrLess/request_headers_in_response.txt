@@ -1,0 +1,9 @@
+when HTTP_REQUEST {
+  # Save the URI
+  set host [HTTP::host]
+}
+when HTTP_RESPONSE {
+  if {([HTTP::header Cache-Control] eq "private, max-age=3600") and ($host equals “my.test.local”)} {
+    HTTP::header replace Cache-Control "public, max-age=3600"
+  }
+}
