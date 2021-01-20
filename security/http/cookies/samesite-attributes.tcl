@@ -1,6 +1,6 @@
 # iRule: samesite_cookie_handling
 # author: Simon Kowallik
-# version: 1.4
+# version: 1.5
 #
 # This iRule requires BIG-IP v12 or higher to use the HTTP::cookie attribute command. 
 # Check https://github.com/f5devcentral/irules-toolbox/tree/master/security/http/cookies for a v11 iRule 
@@ -13,6 +13,7 @@
 #	 1.2 - Aaron Hooley - Added option to rewrite all cookies without naming them explicitly or with prefixes
 #	 1.3 - Aaron Hooley - set samesite_compatible to 0 by default instead of a null string 
 #	 1.4 - Aaron Hooley - Fixed issue with removing samesite=none cookies for incompatible clients and setting lax or strict
+#	 1.5 - Aaron Hooley - Fixed issue noted in https://support.f5.com/csp/article/K23237429 by disabling the iRule if another response has already been sent
 #
 # What the iRule does:
 # Sets SameSite to Strict, Lax or None (and sets Secure when SameSite=None) for compatible user-agents
@@ -186,6 +187,13 @@ when HTTP_REQUEST priority 100 {
 }
 # Run this response event with priority 900 after all other iRules to parse the final cookies from the application and BIG-IP
 when HTTP_RESPONSE_RELEASE priority 900 {
+
+	# Don't do anything if a response has already been triggered for this request
+	if {[HTTP::has_responded]}{
+		if { $samesite_debug }{ log local0. "$prefix Exiting as response has already been triggered by another configuration option" }
+		# exit this event in this iRule
+		return
+	}
 
 	# Log the pre-existing Set-Cookie header values
 	if { $samesite_debug }{ log local0. "$prefix Original Set-Cookie value(s): [HTTP::header values {Set-Cookie}]" }
