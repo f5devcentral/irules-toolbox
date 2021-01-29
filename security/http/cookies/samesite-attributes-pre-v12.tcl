@@ -204,7 +204,7 @@ when HTTP_RESPONSE_RELEASE priority 900 {
 				# Insert the current Set-Cookie header with SameSite attribute appended
 				if {[string equal -nocase $samesite_security "none"]}{
 					# Might want to check if Secure is already set in this header?
-					HTTP::header insert {Set-Cookie} "$set_cookie SameSite=None; Secure;"
+					HTTP::header insert {Set-Cookie} "$set_cookie; SameSite=None; Secure;"
 					if { $samesite_debug }{ log local0. "$prefix Adding Set-Cookie: $set_cookie SameSite=None; Secure;" }
 				} else {
 					HTTP::header insert {Set-Cookie} "$set_cookie; SameSite=$samesite_security;"
