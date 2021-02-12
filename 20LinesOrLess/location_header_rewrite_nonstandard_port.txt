@@ -1,0 +1,21 @@
+when HTTP_RESPONSE {
+  if {[string tolower [HTTP::header Location]] starts_with "http://" }{
+    #Splits the Location Header string into a list
+    # e.g. http://www.test.com/path1/path2/index.html = 'http:', '', 'www.test.com', 'path1', 'path2', 'index.html'
+    set loc_list [split [HTTP::header Location] "/"]
+    [getfield [HTTP::header Location] "/" 2]
+
+    # Replaces list location 0 (first item) with 'https:'
+    # e.g. list item 0 = 'http:' and is replaced with 'https:'
+    lreplace [$loc_list 0 0 "https:"]
+
+    # Appended the port number to list location 2 (the FQDN), if a port is already defined this will replaced
+    # e.g. list item 2 = 'www.test.com:897' is replaced with 'www.test.com:80'
+    # e.g. list item 2 = 'www2.test.com' is replaced with 'www2.test.com:80'
+    lreplace [$loc_list 2 2 [lindex [split [lindex $loc_list 2] ":"] 0]:80]
+
+    # List items are joined back together with '/' inserted and set at the new HTTP Location Header
+    # e.g. list = 'https:', '', 'www.test.com:80', 'path1', 'path2', 'index.html' becomes 'https://www.test.com:80/path1/path2/index.html'
+    HTTP::header replace Location [join $loc_list "/"]
+  }
+}

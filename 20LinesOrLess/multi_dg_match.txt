@@ -1,0 +1,11 @@
+when HTTP_REQUEST {
+  if { [class match [string tolower [HTTP::uri]] eq "Allowed-URIs" ] }{
+    if { [class match [IP::client_addr] eq "Allowed-IPs" ] }{
+      # Do not interfere (Allowed)
+      return
+    } else {
+      # Not allowed
+      drop
+    }
+  }
+}

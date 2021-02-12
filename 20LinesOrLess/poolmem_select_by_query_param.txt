@@ -1,0 +1,10 @@
+when CLIENT_ACCEPTED {
+  set default_pool [LB::server pool]
+}
+when HTTP_REQUEST {
+  set target_member [URI::query [HTTP::uri] server]
+  if {!($target_member eq "")} {
+    pool $default_pool member $target_member
+    HTTP::uri [string map -nocase [list "&server=$target_member" "" ] [HTTP::uri]]
+  }
+}
