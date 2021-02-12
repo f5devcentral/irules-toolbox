@@ -1,0 +1,7 @@
+when HTTP_REQUEST priority 1 {
+    if {[POLICY::targets http-reply] } {
+        log local0. "LTM Policy action contains redirect. Disabling event"
+        event disable
+        return
+    }
+}

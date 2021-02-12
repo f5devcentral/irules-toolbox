@@ -1,0 +1,8 @@
+when ACCESS_ACL_ALLOWED {
+    if { [HTTP::uri] starts_with "/ecp" } {
+        if { [ACCESS::session data get session.custom.mfa] != 1 } {
+            ACCESS::session remove
+            ACCESS::respond 301 Location "[HTTP::uri]"
+        }
+    }
+}

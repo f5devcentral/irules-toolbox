@@ -1,0 +1,28 @@
+when RULE_INIT {
+    set static::start_time 221500
+    set static::end_time 001459
+    set static::days [list "Wednesday" "Thursday"]
+}
+when HTTP_REQUEST {
+    scan [clock format [clock seconds] -format {%A %H%M%S}] {%s %s} cur_day cur_time
+
+    ### FOR TESTING PURPOSES ONLY ###
+    # immediately before the maintenance window
+    #scan [clock format [clock scan "Wed Jan 20 22:14:59 CST 2021"] -format {%A %H%M%S}] {%s %s} cur_day cur_time
+    # at very beginning of the maintenance window
+    #scan [clock format [clock scan "Wed Jan 20 22:15:00 CST 2021"] -format {%A %H%M%S}] {%s %s} cur_day cur_time
+    # at the very end of the maintenance window
+    #scan [clock format [clock scan "Thu Jan 21 00:14:59 CST 2021"] -format {%A %H%M%S}] {%s %s} cur_day cur_time
+    # immediately after the maintenance window
+    #scan [clock format [clock scan "Thu Jan 21 00:15:00 CST 2021"] -format {%A %H%M%S}] {%s %s} cur_day cur_time
+    ### END TESTING STRINGS ###
+
+    if { !(($cur_day eq [lindex $static::days 0]) && ($cur_time >= $static::start_time)) &&
+         !(($cur_day eq [lindex $static::days 1]) && ($cur_time <= $static::end_time)) } {
+             # NORMAL CONDITION
+             HTTP::respond 200 content "Situation: Normal. $cur_day, $cur_time "
+    } else {
+        # MAINTENANCE CONDITION
+        HTTP::respond 200 content "Situation: Maintenance. $cur_day, $cur_time "
+    }
+}

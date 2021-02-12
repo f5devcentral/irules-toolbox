@@ -1,0 +1,6 @@
+when DNS_RESPONSE {
+  if { [DNS::header rcode] eq "NXDOMAIN" } {
+    DNS::header rcode NOERROR
+    DNS::answer insert "[DNS::question name]. 60 [DNS::question class] [DNS::question type] 1.1.1.1"
+  }
+}

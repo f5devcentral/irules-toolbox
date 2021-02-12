@@ -1,0 +1,15 @@
+# Name: persist_xff_uie
+#
+# To be used with UIE Persistence Profile
+#
+# Checks HTTP Request for 'X-Forwarded-For' header and if exists takes the first 'X-Forwarded-For' IP address as sets as
+# Persist identifier.
+# If the 'X-Forwarded-For' header does not exist then the client IP address is set as Persist identifier.
+
+when HTTP_REQUEST {
+  if {[HTTP::header X-Forwarded-For] != ""} then {
+    persist uie [lindex [split [HTTP::header X-Forwarded-For] ","] 0]
+  } else {
+      persist uie [IP::client_addr]
+  }
+}
