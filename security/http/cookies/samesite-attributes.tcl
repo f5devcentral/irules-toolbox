@@ -1,6 +1,7 @@
+# Source: https://github.com/f5devcentral/irules-toolbox/blob/master/security/http/cookies/samesite-attributes.tcl
 # iRule: samesite_cookie_handling
 # author: Simon Kowallik
-# version: 1.5
+# version: 1.6
 #
 # This iRule requires BIG-IP v12 or higher to use the HTTP::cookie attribute command. 
 # Check https://github.com/f5devcentral/irules-toolbox/tree/master/security/http/cookies for a v11 iRule 
@@ -14,6 +15,7 @@
 #	 1.3 - Aaron Hooley - set samesite_compatible to 0 by default instead of a null string 
 #	 1.4 - Aaron Hooley - Fixed issue with removing samesite=none cookies for incompatible clients and setting lax or strict
 #	 1.5 - Aaron Hooley - Fixed issue noted in https://support.f5.com/csp/article/K23237429 by disabling the iRule if another response has already been sent
+#        1.6 - Rene Geile - Change values to first letter uppercase, no upfront conversion, all inline comparison with tolower
 #
 # What the iRule does:
 # Sets SameSite to Strict, Lax or None (and sets Secure when SameSite=None) for compatible user-agents
@@ -83,26 +85,23 @@ when CLIENT_ACCEPTED priority 100 {
 
 	# Set BIG-IP and app cookies found in Set-Cookie headers using this iRule to:
 	#
-	# none: Cookies will be sent in both first-party context and cross-origin requests; 
+	# None: Cookies will be sent in both first-party context and cross-origin requests; 
 	#		however, the value must be explicitly set to None and all browser requests must 
 	#		follow the HTTPS protocol and include the Secure attribute which requires an encrypted 
 	#		connection. Cookies that don't adhere to that requirement will be rejected.
 	#		Both attributes are required together. If just None is specified without Secure or 
 	#		if the HTTPS protocol is not used, the third-party cookie will be rejected.
 	#
-	# lax: Cookies will be sent automatically only in a first-party context and with HTTP GET requests. 
+	# Lax: Cookies will be sent automatically only in a first-party context and with HTTP GET requests. 
 	#		SameSite cookies will be withheld on cross-site sub-requests, such as calls to load images or iframes, 
 	#		but will be sent when a user navigates to the URL from an external site, e.g., by following a link.
 	#
-	# strict: browser never sends cookies in requests to third party domains
+	# Strict: browser never sends cookies in requests to third party domains
 	#
 	#		Above definitions from: https://docs.microsoft.com/en-us/microsoftteams/platform/resources/samesite-cookie-update 
 	#
 	# Note: this iRule does not modify cookies set on the client using Javascript or other methods outside of Set-Cookie headers!
-	set samesite_security "none"
-
-	# Set the security value to lower case for easier string comparisons later in this iRule
-	set samesite_security [string tolower $samesite_security]
+	set samesite_security "None"
 
 	# Uncomment when using this iRule on an APM-enabled virtual server so the MRHSession cookies will be rewritten
 	# The iRule cannot be saved on a virtual server with this option uncommented if there is no Access profile also enabled
@@ -173,7 +172,7 @@ when HTTP_REQUEST priority 100 {
 
 	# If we're removing samesite=none cookies for incompatible browsers or we're setting samesite to none, 
 	#	we need to check the user-agent to see if it's compatible with samesite=none
-	if { $remove_samesite_for_incompatible_user_agents == 1 or $samesite_security eq "none"}{
+	if { $remove_samesite_for_incompatible_user_agents == 1 or [string tolower $samesite_security] eq "none" }{
 
 		# Inspect user-agent once per TCP session for higher performance if the user-agent hasn't changed
 		if { $samesite_none_compatible == 0 or $user_agent ne [HTTP::header value {User-Agent}]} {
@@ -198,7 +197,7 @@ when HTTP_RESPONSE_RELEASE priority 900 {
 	# Log the pre-existing Set-Cookie header values
 	if { $samesite_debug }{ log local0. "$prefix Original Set-Cookie value(s): [HTTP::header values {Set-Cookie}]" }
 
-	if { $samesite_none_compatible == 1 or $samesite_security ne "none" } {
+	if { $samesite_none_compatible == 1 or [string tolower $samesite_security] ne "none" } {
 		# user-agent is compatible with SameSite=None or we're setting samesite to lax or strict, so set SameSite on matching cookies
 
 		if { $set_samesite_on_all }{
@@ -214,7 +213,7 @@ when HTTP_RESPONSE_RELEASE priority 900 {
 				HTTP::cookie attribute $cookie insert {samesite} $samesite_security
 
 				# If samesite attribute is set to None, then the Secure flag must be set for browsers to accept the cookie
-				if {[string equal -nocase $samesite_security "none"]} {
+				if {[string tolower $samesite_security] eq "none" } {
 					HTTP::cookie secure $cookie enable
 				}
 			}
@@ -232,7 +231,7 @@ when HTTP_RESPONSE_RELEASE priority 900 {
 					HTTP::cookie attribute $cookie insert {SameSite} $samesite_security
 
 					# If samesite attribute is set to None, then the Secure flag must be set for browsers to accept the cookie
-					if {[string equal -nocase $samesite_security "none"]} {
+					if {[string tolower $samesite_security] eq "none" } {
 						HTTP::cookie secure $cookie enable
 					}
 				if { $samesite_debug }{ log local0. "$prefix Matched explicitly named cookie $cookie, set SameSite=$samesite_security" }
@@ -252,7 +251,7 @@ when HTTP_RESPONSE_RELEASE priority 900 {
 						HTTP::cookie attribute $cookie insert {SameSite} $samesite_security
 
 						# If samesite attribute is set to None, then the Secure flag must be set for browsers to accept the cookie
-						if { [string equal -nocase $samesite_security "none"] } {
+						if { [string tolower $samesite_security] eq "none" } {
 							HTTP::cookie secure $cookie enable
 						}
 						if { $samesite_debug }{ log local0. "$prefix Matched prefixed cookie $cookie, with prefix $cookie_prefix, set SameSite=$samesite_security, breaking from loop" }
