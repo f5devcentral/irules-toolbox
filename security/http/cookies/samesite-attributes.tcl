@@ -28,7 +28,7 @@
 #
 # RFC "standards"
 # https://tools.ietf.org/html/draft-west-cookie-incrementalism-00
-# https://tools.ietf.org/html/draft-ietf-httpbis-rfc6265bis-05
+# https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-rfc6265bis-09
 # further reading:
 # https://web.dev/samesite-cookies-explained/
 # https://web.dev/samesite-cookie-recipes/
@@ -83,23 +83,23 @@ when CLIENT_ACCEPTED priority 100 {
 
 	# Set BIG-IP and app cookies found in Set-Cookie headers using this iRule to:
 	#
-	# none: Cookies will be sent in both first-party context and cross-origin requests; 
+	# None: Cookies will be sent in both first-party context and cross-origin requests; 
 	#		however, the value must be explicitly set to None and all browser requests must 
 	#		follow the HTTPS protocol and include the Secure attribute which requires an encrypted 
 	#		connection. Cookies that don't adhere to that requirement will be rejected.
 	#		Both attributes are required together. If just None is specified without Secure or 
 	#		if the HTTPS protocol is not used, the third-party cookie will be rejected.
 	#
-	# lax: Cookies will be sent automatically only in a first-party context and with HTTP GET requests. 
+	# Lax: Cookies will be sent automatically only in a first-party context and with HTTP GET requests. 
 	#		SameSite cookies will be withheld on cross-site sub-requests, such as calls to load images or iframes, 
 	#		but will be sent when a user navigates to the URL from an external site, e.g., by following a link.
 	#
-	# strict: browser never sends cookies in requests to third party domains
+	# Strict: browser never sends cookies in requests to third party domains
 	#
 	#		Above definitions from: https://docs.microsoft.com/en-us/microsoftteams/platform/resources/samesite-cookie-update 
 	#
 	# Note: this iRule does not modify cookies set on the client using Javascript or other methods outside of Set-Cookie headers!
-	set samesite_security "none"
+	set samesite_security "None"
 
 	# Set the security value to lower case for easier string comparisons later in this iRule
 	set samesite_security [string tolower $samesite_security]
