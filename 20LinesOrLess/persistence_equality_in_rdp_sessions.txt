@@ -1,19 +1,37 @@
-when CLIENT_ACCEPTED {
-  TCP::collect
+# Create an F5 BIG-IP iRule that establishes persistence for RDP sessions based on the 'mstshash' cookie. The rule should trigger on client connection and data receipt. It should parse the TCP payload to extract the cookie value, handle cases with and without the "@" symbol, and set persistence for 3 hours using the appropriate part of the cookie value.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Start collecting TCP payload data
+    TCP::collect
 }
-when CLIENT_DATA {
-  TCP::collect 25
-  binary scan [TCP::payload] x11a* msrdp
-  if { [string equal -nocase -length 17 $msrdp "cookie: mstshash="] } {
-    set msrdp [string range $msrdp 17 end]
-    set len [string first "\n" $msrdp]
-    if { $len == -1 } { TCP::collect }
-    if { $msrdp contains "@" } {
-      if { $len > 5 } {
-        incr len -1
-        persist uie [getfield $msrdp "@" 1] 10800
-      }
-    } else { persist uie $msrdp 10800 }
-  }
-  TCP::release
+
+when CLIENT_DATA priority 500 {
+    # Collect up to 25 bytes of TCP payload
+    TCP::collect 25
+    # Extract the payload after the first 11 bytes
+    binary scan [TCP::payload] x11a* msrdp
+    # Check if the payload contains the RDP cookie "mstshash="
+    if { [string equal -nocase -length 17 $msrdp "cookie: mstshash="] } {
+        # Extract the cookie value
+        set msrdp [string range $msrdp 17 end]
+        # Find the end of the cookie value (newline character)
+        set len [string first "\n" $msrdp]
+        # If newline not found, continue collecting data
+        if { $len == -1 } { TCP::collect }
+        # Check if the cookie value contains an "@" symbol
+        if { $msrdp contains "@" } {
+            # If the cookie value is long enough
+            if { $len > 5 } {
+                # Adjust length to exclude newline
+                incr len -1
+                # Set persistence using the part before "@" for 3 hours
+                persist uie [getfield $msrdp "@" 1] 10800
+            }
+        } else { 
+            # If no "@" symbol, use the whole cookie value for persistence
+            persist uie $msrdp 10800 
+        }
+    }
+    # Release the TCP payload
+    TCP::release
 }

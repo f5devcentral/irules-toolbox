@@ -1,20 +1,46 @@
-when HTTP_REQUEST {
-  switch [HTTP::host] {
-    "www.mydomain.eu" {
-      switch [HTTP::uri] {
-        "/" {  HTTP::respond 301 Location "http://www.mydomain.eu/zz/index.html" }
-        default { pool mydomain_eu_pool    }
-      }
+# Create an F5 BIG-IP iRule that handles HTTP requests for multiple country-specific domains. The rule should check the requested host domain and URI path to determine appropriate routing. For the EU domain, redirect the root path to a specific index page and route all other paths to an EU-specific pool. For the Belgium domain, redirect the root path to the EU domain with a country-specific path and route all other paths to a Belgium-specific pool. For Netherlands, France (with or without www), and Luxembourg domains, redirect all requests to the EU domain with country-specific paths. This rule provides centralized management of multi-country domain routing and redirection.
+
+when HTTP_REQUEST priority 500 {
+    # Use a switch statement to handle different host domains
+    switch -- [HTTP::host] {
+        "www.mydomain.eu" {
+            # For the EU domain, check the requested URI
+            switch -- [HTTP::uri] {
+                "/" {  
+                    # Redirect the root path to a specific index page
+                    HTTP::respond 301 Location "http://www.mydomain.eu/zz/index.html" 
+                }
+                default { 
+                    # For all other paths, use the EU-specific pool
+                    pool mydomain_eu_pool 
+                }
+            }
+        }
+        "www.mydomain.be" {
+            # For the Belgium domain, check the requested URI
+            switch -- [HTTP::uri] {
+                "/" { 
+                    # Redirect the root path to the EU domain with BE-specific path
+                    HTTP::respond 301 Location "http://www.mydomain.eu/be/zz/index.jsp" 
+                }
+                default { 
+                    # For all other paths, use the Belgium-specific pool
+                    pool mydomain_be_pool 
+                }
+            }
+        }
+        "www.mydomain.nl" { 
+            # Redirect all Netherlands domain requests to the EU domain with NL-specific path
+            HTTP::respond 301 Location "http://www.mydomain.eu/nl/zz/index.jsp" 
+        }
+        "www.mydomain.fr" -
+        "mydomain.fr" { 
+            # Redirect all France domain requests (with or without www) to the EU domain with FR-specific path
+            HTTP::respond 301 Location "http://www.mydomain.eu/fr/zz/index.jsp" 
+        }
+        "www.mydomain.lu" { 
+            # Redirect all Luxembourg domain requests to the EU domain with LU-specific path
+            HTTP::respond 301 Location "http://www.mydomain.eu/lu/zz" 
+        }
     }
-    "www.mydomain.be" {
-      switch [HTTP::uri] {
-        "/" { HTTP::respond 301 Location "http://www.mydomain.eu/be/zz/index.jsp" }
-         default { pool mydomain_be_pool }
-      }
-    }
-    "www.mydomain.nl" { HTTP::respond 301 Location "http://www.mydomain.eu/nl/zz/index.jsp" }
-    "www.mydomain.fr" -
-    "mydomain.fr" { HTTP::respond 301 Location "http://www.mydomain.eu/fr/zz/index.jsp }
-    "www.mydomain.lu" { HTTP::respond 301 Location "http://www.mydomain.eu/lu/zz" }
-  }
 }

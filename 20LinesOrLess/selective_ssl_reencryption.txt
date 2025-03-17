@@ -1,18 +1,46 @@
-when HTTP_REQUEST {
-  set usessl 0
-     switch -glob [string tolower[HTTP::path]] {
-       "/main*" {
-           pool beta__pool
-           set usessl 1
-         }
-       default {
-           pool alpha_pool
-           set usessl 0
-         }
-       }
-   }
-when SERVER_CONNECTED {
-  if { $usessl == 0 } {
+# Create an F5 BIG-IP iRule that implements selective SSL re-encryption based on the requested path. The rule should direct requests starting with "/main" to a beta pool with SSL re-encryption enabled, while routing all other requests to an alpha pool with SSL offloading (where the backend connection uses HTTP even though the client connection uses HTTPS).
+
+when HTTP_REQUEST priority 500 {
+    # Initialize the SSL flag to disabled (0) by default
+    # This variable will determine if SSL re-encryption is needed for backend connections
+    set usessl 0
+    
+    # Use a switch statement to match the requested path (converted to lowercase)
+    # and select the appropriate server pool and SSL setting
+    switch -glob -- [string tolower[HTTP::path]] {
+        "/main*" {
+            # For paths starting with "/main", use the beta pool
+            # -glob allows wildcard matching with the asterisk
+            pool beta__pool
+            
+            # Enable SSL re-encryption for these requests
+            # by setting the usessl flag to 1
+            set usessl 1
+        }
+        default {
+            # For all other paths not matching above patterns
+            # use the alpha pool as the default destination
+            pool alpha_pool
+            
+            # Explicitly disable SSL re-encryption for these requests
+            # (redundant since usessl is already 0, but makes intent clear)
+            set usessl 0
+        }
+    }
+}
+
+when SERVER_CONNECTED priority 500 {
+    # This event triggers after a connection to the backend server is established
+    
+    # Check if SSL re-encryption should be used
+    # If usessl is 1 (meaning SSL is enabled), exit the event handler
+    # and allow the default SSL behavior to continue
+    if { $usessl == 1 } {
+        return
+    }
+
+    # If we reach here, usessl is 0, meaning SSL should be disabled
+    # Disable SSL for this server-side connection
+    # This implements SSL offloading - client uses HTTPS but backend uses HTTP
     SSL::disable
-  }
 }

@@ -1,13 +1,28 @@
-when HTTP_REQUEST {
-  if {[HTTP::uri] eq "/status" } {
+# Create an F5 BIG-IP iRule that provides a simple status page for a specific pool. The rule should run on HTTP requests, respond only to the "/status" path, and display whether the pool is up or down based on active members. Include the pool name, current member, port, and timestamp in the response.
+
+when HTTP_REQUEST priority 500 {
+    if {[HTTP::path] ne "/status" } {
+        # If the requested Path is not "/status", exit the rule and continue normal processing
+        return
+    }
+
+    # Parse the selected pool and member information
     scan [LB::select] %s%s%s%s%d command current_pool command2 current_member current_port
-    eval [LB::select]
+    # Re-select the pool member to ensure we're using the current selection
+    eval {LB::select}
+
+    # Start building the response with pool name and current timestamp
     set response "$current_pool Pool Status - [clock format [clock seconds]]http://[HTTP::host]/status'>"
+
+    # Check if the pool has any active members
     if { [active_members $current_pool] < 1 } {
-      append response "POOL NAME:$current_pool CURRENT MEMBER:$current_member:$current_port STATUS: DOWN"
+        # If no active members, report the pool as DOWN
+        append response "POOL NAME:$current_pool CURRENT MEMBER:$current_member:$current_port STATUS: DOWN"
     } else {
+        # If there are active members, report the pool as UP
         append response "POOL NAME:$current_pool CURRENT MEMBER:$current_member:$current_port STATUS: UP"
     }
-  }
-  HTTP::respond 200 content $response "Content-Type" "text/html"
+
+    # Send an HTTP 200 response with the status information
+    HTTP::respond 200 content $response "Content-Type" "text/html"
 }

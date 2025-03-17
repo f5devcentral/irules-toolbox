@@ -1,10 +1,22 @@
-when CLIENT_ACCEPTED {
-  set default_pool [LB::server pool]
+# Create an F5 BIG-IP iRule that allows dynamic selection of a specific pool member based on a 'server' query parameter in the URI. If the `server` query parameter is not present, choose the default pool.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Store the default pool for this virtual server
+    set default_pool [LB::server pool]
 }
-when HTTP_REQUEST {
-  set target_member [URI::query [HTTP::uri] server]
-  if {!($target_member eq "")} {
+
+when HTTP_REQUEST priority 500 {
+    # Extract the 'server' parameter from the URI query string
+    set target_member [URI::query [HTTP::uri] server]
+
+    # If no 'server' parameter is found, exit the rule
+    if { ($target_member eq "") } {
+        return
+    }
+
+    # Select the specific pool member based on the 'server' parameter
     pool $default_pool member $target_member
+
+    # Remove the 'server' parameter from the URI to hide it from the backend server
     HTTP::uri [string map -nocase [list "&server=$target_member" "" ] [HTTP::uri]]
-  }
 }

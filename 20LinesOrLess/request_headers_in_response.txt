@@ -1,9 +1,19 @@
-when HTTP_REQUEST {
-  # Save the URI
-  set host [HTTP::host]
+# Create an F5 BIG-IP iRule that modifies cache control settings for a specific host. The iRule should check responses for a specific Cache-Control header value and host combination, changing private cache directives to public while preserving the original max-age value.
+
+when HTTP_REQUEST priority 500 {
+    # Store the requested hostname in a variable for later use
+    # This captures the value of the Host header from the client request
+    set host [HTTP::host]
 }
-when HTTP_RESPONSE {
-  if {([HTTP::header Cache-Control] eq "private, max-age=3600") and ($host equals “my.test.local”)} {
-    HTTP::header replace Cache-Control "public, max-age=3600"
-  }
+
+when HTTP_RESPONSE priority 500 {
+    # Check two conditions:
+    # 1. If the Cache-Control header equals exactly "private, max-age=3600"
+    # 2. If the host (captured during the request) equals "my.test.local"
+    if {([HTTP::header Cache-Control] eq "private, max-age=3600") and ($host equals "my.test.local")} {
+        # If both conditions are true, replace the Cache-Control header
+        # Change it from private (client-only caching) to public (shared caching)
+        # while maintaining the same max-age value
+        HTTP::header replace Cache-Control "public, max-age=3600"
+    }
 }

@@ -1,9 +1,9 @@
-when HTTP_REQUEST {
-  if {[string tolower [HTTP::host]] equals "www.website.com"} {
-    scan [HTTP::uri] {/%s} cust
-    set pl [class match -value $cust equals redirect_class]
-    if {$pl ne ""} {
-      HTTP::redirect "http://[string map "www $pl" [string tolower [HTTP::host]]][HTTP::uri]"
+when HTTP_REQUEST priority 500 {
+    if { [string tolower [HTTP::host]] equals "www.website.com" } {
+        scan [HTTP::uri] {/%s} cust
+        set pl [class match -value -- $cust equals /Common/redirect_class]
+        if {$pl ne ""} {
+            HTTP::redirect "http://[string map "www $pl" [string tolower [HTTP::host]]][HTTP::uri]"
+        }
     }
-  }
 }

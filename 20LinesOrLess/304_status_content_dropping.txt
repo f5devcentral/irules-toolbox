@@ -1,20 +1,45 @@
-when HTTP_RESPONSE {
-  if {[catch {HTTP::status} status] or $status == ""} {
-    set status "-"
-    HTTP::close
-  } elseif {$status >= 400} {
-    HTTP::close
-  } elseif {$status == 304} {
-    catch {unset hdrs}
-    if [catch {HTTP::header names} headerNames] {
-      lappend hdrs X-Error "noHeaderSent"
-    } else {
-      foreach hdr $headerNames {
-        if { ! [catch "HTTP::header value $hdr" vals]} {
-          lappend hdrs $hdr "$vals"
+# Create an F5 iRule that handles HTTP responses based on status codes. The iRule should close connections for error responses (4xx and 5xx), create custom 304 Not Modified responses that preserve the original headers but drop the response body, and handle cases where the status code can't be retrieved.
+
+when HTTP_RESPONSE priority 500 {
+    # Try to get the HTTP status code, catch any errors if status isn't available
+    if { [catch {HTTP::status} status] or ${status} == "" } {
+        # If status code can't be retrieved or is empty, set it to "-" for logging
+        set status "-"
+        # Close the connection as we can't properly process the response
+        HTTP::close
+    } elseif { ${status} >= 400 } {
+        # For all error responses (4xx and 5xx), close the connection
+        # This prevents sending error pages to the client
+        HTTP::close
+    } elseif { ${status} == 304 } {
+        # Special handling for 304 Not Modified responses
+        # These responses should have no body but preserve certain headers
+        
+        # Initialize/clear the headers array
+        unset -nocomplain -- hdrs
+        
+        # Try to get all header names from the original response
+        if { [catch {HTTP::header names} headerNames] } {
+            # If we can't get headers, add an error header
+            lappend hdrs X-Error "noHeaderSent"
+        } else {
+            # For each header in the original response
+            foreach hdr $headerNames {
+                # Try to get the values for this header
+                if { ! [catch {set vals [list [HTTP::header values $hdr]]}] } {
+                    # Add the header and its values to our custom headers array
+                    lappend hdrs $hdr "$vals"
+                }
+            }
         }
-      }
+        
+        # Send a custom 304 response with the preserved headers
+        # 'noserver' prevents adding the default server header
+        if { [catch {HTTP::respond 304 noserver $hdrs err}] } {
+            # Log any errors that occur when sending the custom 304 response
+            log local0. "RESPOND_304_ERROR: $err"
+        }
     }
-    if [catch HTTP::respond 304 $hdrs err] { log local0. "RESPOND_304_ERROR: $ err" }
-  }
+    # For all other status codes (1xx, 2xx, 3xx except 304), 
+    # normal response processing continues
 }

@@ -1,14 +1,27 @@
+# Create an F5 iRule that routes HTTP traffic to different pools based on the request path. The iRule should convert the path to lowercase, send requests starting with "/devicepairingstage" to a staging pool with debug logging of the URI and client IP, send requests starting with "/devicepairing" to a production pool with URI logging, and allow all other paths to continue with normal processing. Enable performance timing for monitoring.
+
+# Enable timing for performance monitoring
 timing on
-when HTTP_REQUEST {
-  switch -glob -- [string tolower [HTTP::path]] {
-    "/devicepairingstage*" {
-      pool ianappsstage-pool-https
-      log local0.debug  "uri: [HTTP::uri]"
-      log local0.debug  "[client_addr] hit devicepairingstage"
+
+when HTTP_REQUEST priority 500 {
+    # Convert the HTTP path to lowercase and check it against specific patterns
+    switch -glob -- [string tolower [HTTP::path]] {
+        # If the path starts with "/devicepairingstage", route to staging environment
+        "/devicepairingstage*" {
+            # Direct traffic to the staging pool
+            pool ianappsstage-pool-https
+            # Log the full URI for debugging purposes
+            log local0.debug  "uri: [HTTP::uri]"
+            # Log client IP address with context message
+            log local0.debug  "[IP::client_addr] hit devicepairingstage"
+        }
+        # If the path starts with "/devicepairing", route to production environment
+        "/devicepairing*" {
+            # Direct traffic to the production pool
+            pool ianapps-pool-https
+            # Log the full URI for debugging purposes
+            log local0.debug "uri: [HTTP::uri]"
+        }
+        # For any other paths, continue normal processing (implicit)
     }
-    "/devicepairing*" {
-      pool ianapps-pool-https
-      log local0.debug "uri: [HTTP::uri]"
-    }
-  }
 }

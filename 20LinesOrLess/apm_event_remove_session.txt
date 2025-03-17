@@ -1,8 +1,28 @@
-when ACCESS_ACL_ALLOWED {
-    if { [HTTP::uri] starts_with "/ecp" } {
-        if { [ACCESS::session data get session.custom.mfa] != 1 } {
-            ACCESS::session remove
-            ACCESS::respond 301 Location "[HTTP::uri]"
-        }
+# Create an F5 iRule that enforces multi-factor authentication for Exchange Control Panel access. The iRule should check if requests are targeting the /ecp path, verify if the user has completed MFA by checking a custom session variable, and force re-authentication by removing the current session and redirecting to the same URI if MFA hasn't been completed.
+
+when ACCESS_ACL_ALLOWED priority 500 {
+    # Get the normalized URI from the HTTP request
+    # Normalization handles URL encoding and path traversal sequences
+    set uri [HTTP::uri -normalized]
+    
+    # Skip this iRule logic if the URI doesn't start with "/ecp"
+    # This targets the Exchange Control Panel specifically
+    if { !("${uri}" starts_with "/ecp") } {
+        return
     }
+
+    # Check if the user has completed MFA authentication
+    # The custom session variable "session.custom.mfa" is set to 1 when MFA is complete
+    if { [ACCESS::session data get session.custom.mfa] == 1 } {
+        # If MFA is complete, allow the request to proceed normally
+        return
+    }
+
+    # If we reach here, the user is accessing the ECP without MFA
+    # Remove the current access session, forcing re-authentication
+    ACCESS::session remove
+    
+    # Redirect the user back to the same URI
+    # This will trigger a new authentication flow that includes MFA
+    ACCESS::respond 301 Location "${uri}"
 }

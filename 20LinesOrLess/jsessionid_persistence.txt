@@ -1,8 +1,11 @@
-when HTTP_RESPONSE {
-  if { [HTTP::header exists "jsessionid"] } {
-    set jsess_resp [findstr [HTTP::header "jsessionid"] "!" 1 "!"]
-    if { $jsess_resp != "" } {
-      persist add uie $jsess_resp
-    }
+when HTTP_RESPONSE priority 500 {
+  if { ![HTTP::header exists "jsessionid"] } {
+    return
   }
+
+  if { [set jsess_resp [findstr [HTTP::header "jsessionid"] "!" 1 "!"]] == "" } {
+    return
+  }
+
+  persist add uie $jsess_resp
 }

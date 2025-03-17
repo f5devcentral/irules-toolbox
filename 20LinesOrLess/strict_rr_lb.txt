@@ -1,23 +1,42 @@
-when CLIENT_ACCEPTED {
-  set poolname "test-pool"
+when CLIENT_ACCEPTED priority 500 {
+    # Define the pool name to use for load balancing
+    set poolname "test-pool"
 
-  if { [active_members $poolname] < 1 } {
-    # No active pool members; reset client
-    reject
-    return
-  }
-
-  set count [members $poolname]
-  set attempt 0
-  while { $attempt < $count } {
-    set num [expr {[table incr "round-robin:$poolname"] % $count}]
-    set mbr [lindex [members -list $poolname] $num]
-    set mbr_ip [lindex $mbr 0]
-    set mbr_port [lindex $mbr 1]
-    if { [LB::status pool $poolname member $mbr_ip $mbr_port up] } {
-      pool $poolname member $mbr_ip $mbr_port
-      return
+    # Check if there are any active members in the pool
+    if { [active_members $poolname] < 1 } {
+        # No active pool members; reset client connection
+        reject
+        event disable all
+        return
     }
-    incr attempt
-  }
+
+    # Get the total number of members in the pool (both active and inactive)
+    set count [members $poolname]
+    # Initialize attempt counter to track how many members we've tried
+    set attempt 0
+
+    # Try each member in round-robin fashion until we find an available one
+    # or until we've tried all members
+    while { $attempt < $count } {
+        # Increment the round-robin counter for this pool and get the next member index
+        # The counter is stored in a table to persist across connections
+        set num [expr {[table -- incr "round-robin:$poolname"] % $count}]
+        
+        # Get the member details at the calculated index
+        set mbr [lindex [members -list $poolname] $num]
+        set mbr_ip [lindex $mbr 0];     # Extract the member's IP address
+        set mbr_port [lindex $mbr 1];   # Extract the member's port
+        
+        # Check if this specific member is up and available
+        if { [LB::status pool $poolname member $mbr_ip $mbr_port up] } {
+            # Member is available, select it and exit the loop
+            pool $poolname member $mbr_ip $mbr_port
+            return
+        }
+        
+        # Current member not available, increment attempt counter and try next one
+        incr attempt
+    }
+    # If we exit the loop without returning, all members were tried but none were available
+    # Connection will be handled by default pool behavior (likely rejected)
 }

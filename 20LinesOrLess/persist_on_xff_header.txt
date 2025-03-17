@@ -1,15 +1,29 @@
-# Name: persist_xff_uie
-#
-# To be used with UIE Persistence Profile
-#
-# Checks HTTP Request for 'X-Forwarded-For' header and if exists takes the first 'X-Forwarded-For' IP address as sets as
-# Persist identifier.
-# If the 'X-Forwarded-For' header does not exist then the client IP address is set as Persist identifier.
+# Create an F5 BIG-IP iRule that sets persistence based on the X-Forwarded-For header. The rule should parse the header, validate IP addresses, exclude certain IP ranges, and use the first valid IP for persistence. If no valid IPs are found in the header, use the client's IP address instead. Make the rule run for every HTTP request.
 
-when HTTP_REQUEST {
-  if {[HTTP::header X-Forwarded-For] != ""} then {
-    persist uie [lindex [split [HTTP::header X-Forwarded-For] ","] 0]
-  } else {
-      persist uie [IP::client_addr]
-  }
+when HTTP_REQUEST priority 500 {
+    # Initialize an empty list to store valid IP addresses
+    set valids {}
+    
+    # Iterate through unique IP addresses in the X-Forwarded-For header
+    # Remove various special characters and sort the list
+    foreach ip [lsort -unique [string map {- { } \{ { } \} { } , { } \[ { } \] { } \" { } \( { } \) { } ; { } \$ { } # { } \\ { }} [HTTP::header values X-Forwarded-For]]] {
+        # Check if the IP address is valid
+        if {![catch {IP::addr $ip mask ::}]} {
+            # Exclude localhost, broadcast, and IPv6 loopback addresses
+            if {![IP::addr $ip equals 127.0.0.0/8] && ![IP::addr $ip equals 0.0.0.0/32] && ![IP::addr $ip equals ::/127]} {
+                # Add valid IP to the list
+                lappend valids $ip
+            }
+        }
+    }
+
+    # If no valid IPs were found in the X-Forwarded-For header
+    if { ${valids} == {} } {
+        # Use the client's IP address for persistence
+        persist uie [IP::client_addr]
+        return
+    }
+
+    # Use the first valid IP from X-Forwarded-For for persistence
+    persist uie [lindex ${valids} 0]
 }

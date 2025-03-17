@@ -1,16 +1,35 @@
-when CLIENT_ACCEPTED {
-  TCP::collect 65
+# Create an F5 iRule that routes TCP traffic based on payload inspection. The iRule should collect the first 65 bytes of client data, extract the first 15 bytes, use binary scanning to read 6 ASCII characters after skipping the first 5 bytes, log the matched string, and route to test_pool1 if the characters equal "000001" or to test_pool2 otherwise.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Begin collecting the first 65 bytes of client data
+    # This ensures we have enough data to analyze before making routing decisions
+    TCP::collect 65
 }
-when CLIENT_DATA {
-  # use pool2 by default
-  pool test_pool2
-  set mero [TCP::payload 15]
-  # Start reading at the 5th byte and save 6 characters to $match
-  if {[binary scan $mero x5a6 match] == 1}{
-    log local0. "Matched $match"
-    if { $match eq "000001" } {
-      pool test_pool1
+
+when CLIENT_DATA priority 500 {
+    # Set the default pool for traffic routing
+    # If no specific condition is met, traffic will go to test_pool2
+    pool test_pool2
+
+    # Extract the first 15 bytes of the TCP payload
+    # This data will be used for pattern matching
+    set mero [TCP::payload 15]
+
+    # Perform binary scanning on the payload
+    # Skip the first 5 bytes (x5), then read 6 ASCII characters (a6) into variable 'match'
+    # The == 1 checks if the scan was successful
+    if { [binary scan $mero x5a6 match] == 1 } {
+        # Log the matched string for debugging purposes
+        log local0. "Matched $match"
+
+        # If the 6 characters equal "000001", route to a different pool
+        # This allows for traffic steering based on specific payload patterns
+        if { $match eq "000001" } {
+            pool test_pool1
+        }
     }
-  }
-  TCP::release
+
+    # Release the collected data to continue normal processing
+    # This allows the connection to proceed after our inspection
+    TCP::release
 }

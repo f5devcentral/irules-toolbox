@@ -1,16 +1,38 @@
+# Create an F5 iRule that implements a delayed failover mechanism. The iRule should check if the primary pool has active members, and if not, start a 10-minute timer before switching to the backup pool. Use connection-level variables to track the failover state and timing.
+
 ### NOTE ###
 # You should look into the after command instead
 #
-when CLIENT_ACCEPTED {
-   set loop 0
+when CLIENT_ACCEPTED priority 500 {
+    # Initialize a loop counter variable to track the state
+    # This is set to 0 when a new client connection is accepted
+    set loop 0
 }
-when HTTP_REQUEST {
-   if {[active_members primarypool] == 0} {
-     if { $loop == 0} {
-       set first [clock seconds]
-       set loop 1
-     } elseif { [expr [clock seconds] - $first] >= 600} {
-       pool backuppool
-     }
-   }
+
+when HTTP_REQUEST priority 500 {
+    # Check if the primary pool has active members
+    # If there are active members, exit the iRule and use the primary pool
+    if {[active_members primarypool] != 0} {
+        return
+    }
+
+    # If this is the first request (loop=0) after detecting primary pool is down
+    if { $loop == 0} {
+        # Record the current time in seconds since epoch
+        # This marks when we first detected the primary pool was down
+        set first [clock seconds]
+        # Set loop to 1 to indicate we've started the failover timer
+        set loop 1
+        # Exit the iRule without changing pools yet
+        return
+    }
+
+    # For subsequent requests, check if 600 seconds (10 minutes) have passed
+    # since we first detected the primary pool was down
+    if { [expr {[clock seconds] - $first}] >= 600} {
+        # If 10 minutes have passed, switch to the backup pool
+        # This provides a delayed failover mechanism
+        pool backuppool
+    }
+    # If less than 10 minutes have passed, the default pool (primary) is still used
 }

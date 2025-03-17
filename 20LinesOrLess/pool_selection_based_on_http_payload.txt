@@ -1,22 +1,41 @@
-when HTTP_REQUEST {
-  if { ([HTTP::method] eq "POST") } {
-    HTTP::collect [HTTP::header Content-Length]
-  }
-}
-when HTTP_REQUEST_DATA {
-  set decoded [decode_uri [HTTP::payload]]
-  set ini [string first "\"idBiller\"" $decoded]
-  if { $ini != -1 } {
-    set end [string first "," $decoded $ini]
-    set value [string range $decoded $ini [expr {$end-1}]]
-    set idBiller [lindex [split $value ":"] 1]
-    switch -exact $idBiller {
-      11111111 {
-        pool Pool_XXX
-      }
-      default {
-        pool Pool_YYY
-      }
+# Create an F5 BIG-IP iRule that routes POST requests to different pools based on an "idBiller" value in the request payload. It should collect the full payload for POST requests, decode it, extract the "idBiller" value, and use a switch statement to select the appropriate pool. If the "idBiller" is 11111111, route to Pool_XXX; otherwise, route to Pool_YYY.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the HTTP method is POST
+    if { ([HTTP::method] eq "POST") } {
+        # If it's a POST request, collect the entire payload
+        # The amount to collect is specified by the Content-Length header
+        HTTP::collect [HTTP::header Content-Length]
     }
-  }
+}
+
+when HTTP_REQUEST_DATA priority 500 {
+    # Decode the URL-encoded payload
+    set decoded [URI::decode [HTTP::payload]]
+    # Find the starting position of "idBiller" in the decoded payload
+    set ini [string first "\"idBiller\"" $decoded]
+
+    # If "idBiller" is not found, exit the rule
+    if { $ini == -1 } {
+        return
+    }
+
+    # Find the end of the "idBiller" value (marked by a comma)
+    set end [string first "," $decoded $ini]
+    # Extract the "idBiller" key-value pair
+    set value [string range $decoded $ini [expr {$end-1}]]
+    # Extract just the value part of "idBiller"
+    set idBiller [lindex [split $value ":"] 1]
+    
+    # Use a switch statement to select the pool based on the idBiller value
+    switch -exact -- $idBiller {
+        11111111 {
+            # If idBiller is 11111111, use Pool_XXX
+            pool Pool_XXX
+        }
+        default {
+            # For any other idBiller value, use Pool_YYY
+            pool Pool_YYY
+        }
+    }
 }

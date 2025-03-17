@@ -1,18 +1,29 @@
-when HTTP_REQUEST {
-  HTTP::header replace ClientIP [IP::remote_addr]
-  if {[PROFILE::exists clientssl] == 1} {
-    set cname "SSL::cipher name"
-    set cbits "SSL::cipher bits"
-    set cver "SSL::cipher version"
-    HTTP::header replace SSLCipher [eval $cname]:[eval $cbits]-[eval $cver]
-    if { [SSL::cert count] > 0} {
-      HTTP::header replace SSLSubject [b64encode [X509::subject [SSL::cert 0]]]
-      HTTP::header replace SSLClientCert [b64encode [SSL::cert 0]]
-      HTTP::header replace WebProtocol "HTTPS-auth"
-    } else {
-      HTTP::header replace WebProtocol "HTTPS"
+# Create an F5 iRule that adds connection information to HTTP requests as custom headers. Add the client's IP address in the ClientIP header. For non-SSL connections, add a WebProtocol header with value "HTTP". For SSL connections, add the cipher details in the SSLCipher header in the format "name:bits-version" and set WebProtocol to "HTTPS". If the client presents a certificate, encode the certificate subject in the SSLSubject header, encode the full certificate in the SSLClientCert header, and set WebProtocol to "HTTPS-auth".
+
+when HTTP_REQUEST priority 500 {
+    # Add the client's IP address as a custom header
+    HTTP::header replace ClientIP [IP::remote_addr]
+
+    # Check if the request is coming through an SSL profile
+    if { [PROFILE::exists clientssl] != 1 } {
+        # If not using SSL, mark the protocol as HTTP in a custom header
+        HTTP::header replace WebProtocol "HTTP"
+        return
     }
-  } else {
-    HTTP::header replace WebProtocol "HTTP"
-  }
+
+    # For SSL connections, add SSL cipher information as a custom header
+    HTTP::header replace SSLCipher [SSL::cipher name]:[SSL::cipher bits]-[SSL::cipher version]
+
+    # Check if client presented a certificate
+    if { [SSL::cert count] < 1 } {
+        # If using SSL but no client certificate, mark as regular HTTPS
+        HTTP::header replace WebProtocol "HTTPS"
+        return
+    }
+
+    # If client presented a certificate, add certificate details as custom headers
+    HTTP::header replace SSLSubject [b64encode [X509::subject [SSL::cert 0]]]
+    HTTP::header replace SSLClientCert [b64encode [SSL::cert 0]]
+    # Mark as authenticated HTTPS in a custom header
+    HTTP::header replace WebProtocol "HTTPS-auth"
 }

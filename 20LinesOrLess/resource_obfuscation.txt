@@ -1,15 +1,25 @@
-when HTTP_RESPONSE {
-  # Remove server header
-  HTTP::header remove "Server"
+# Create an F5 BIG-IP iRule that enhances security by removing HTTP response headers that could reveal sensitive information. The rule should strip the Server header to hide web server details, remove the Date header to prevent server time disclosure, and eliminate all custom X- headers that might expose implementation specifics.
 
-  # Remove Date header
-  HTTP::header remove "Date"
-  # Remove any header which starts with "X-"
-  for {set i 0} {$i < [HTTP::header count]} {incr i} {
-    # Check if the current header name starts with X-
-    if {[string tolower [HTTP::header at $i]] starts_with "x-"}{
-      # Remove the header
-      HTTP::header remove [HTTP::header at $i]
+when HTTP_RESPONSE priority 500 {
+    # Remove the Server header from the HTTP response
+    # This helps hide information about the web server software and version
+    # which reduces potential attack surface by preventing server fingerprinting
+    HTTP::header remove "Server"
+
+    # Remove the Date header from the HTTP response
+    # This helps prevent information disclosure about server time
+    HTTP::header remove "Date"
+    
+    # Loop through all headers to find and remove any that start with "X-"
+    # These are typically non-standard headers that might reveal implementation details
+    for {set i 0} {$i < [HTTP::header count]} {incr i} {
+        # Check if the current header name starts with X- (case-insensitive)
+        # The string tolower command ensures we catch headers regardless of capitalization
+        if { [string tolower [HTTP::header at $i]] starts_with "x-" } {
+            # Remove the matching header to prevent information disclosure
+            # Note: removing a header during iteration doesn't affect the loop
+            # because we're using the index position rather than iterating through a list
+            HTTP::header remove [HTTP::header at $i]
+        }
     }
-  }
 }

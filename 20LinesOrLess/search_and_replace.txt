@@ -1,19 +1,40 @@
-when HTTP_REQUEST {
-  set replace_content 0
-  if {[HTTP::uri] contains "/atoz/"} {
-    set replace_content 1
-  }
-}
-when HTTP_RESPONSE {
-  if { $replace_content } {
-    # Disable the stream filter by default
-    STREAM::disable
-    # Check if response type is text
-    if {[HTTP::header value Content-Type] contains "text" and [HTTP::header "User-Agent"] contains "***"}{
-      # Replace
-      STREAM::expression "@123@xyz@ @456@xyz@"
-      # Enable the stream filter for this response only
-      STREAM::enable
+# Create an F5 BIG-IP iRule that performs selective content replacement in HTTP responses. The rule should flag requests containing "/atoz/" in the URI, then modify text responses from specific user agents by replacing "@123@xyz@" with "@456@xyz@" using the STREAM module for content transformation.
+
+when HTTP_REQUEST priority 500 {
+    # Initialize a flag to track whether content replacement should be performed
+    # Default is 0 (false) - no replacement
+    set replace_content 0
+    
+    # Check if the requested URI contains "/atoz/"
+    # If it does, set the flag to enable content replacement for this request
+    if {[HTTP::uri] contains "/atoz/"} {
+        set replace_content 1
     }
-  }
+}
+
+when HTTP_RESPONSE priority 500 {
+    # If the replace_content flag wasn't set during the request phase,
+    # exit the response handling without making any changes
+    if { not $replace_content } {
+        return
+    }
+
+    # Disable the stream filter by default
+    # This ensures we don't process responses unless all conditions are met
+    STREAM::disable
+
+    # Only proceed with content replacement if two conditions are met:
+    # 1. The Content-Type header contains "text" (e.g., text/html, text/plain)
+    # 2. The User-Agent header contains "***" (likely a specific client identifier)
+    if { not ([HTTP::header value Content-Type] contains "text" and [HTTP::header "User-Agent"] contains "***") } {
+        return
+    }
+
+    # Set up the search and replace pattern for the stream filter
+    # This will replace "@123@xyz@" with "@456@xyz@" in the response content
+    STREAM::expression "@123@xyz@ @456@xyz@"
+    
+    # Enable the stream filter to perform the replacement
+    # This activates the content transformation for this response only
+    STREAM::enable
 }

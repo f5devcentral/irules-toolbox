@@ -1,17 +1,47 @@
- when LB_SELECTED {
-    switch [LB::server addr] {
-       222.35.42.126 {
-          switch [IP::client_addr] {
-             192.168.3.11 { snatpool snat_crt_test2 }
-             default { snatpool snat_crt_pool }
-          }
-       }
-       221.218.248.155 {
-          switch [IP::client_addr] {
-             192.168.3.11 { snatpool snat_uni_test2 }
-             default { snatpool snat_uni_pool }
-          }
-       }
-       default { snat automap }
+# Create an F5 BIG-IP iRule that dynamically selects different SNAT pools based on destination server addresses and client IP addresses. The rule should check the selected server's IP address, then examine the client's IP address to determine the appropriate SNAT pool, with special handling for a specific test client and fallback to automap for unspecified servers.
+
+when LB_SELECTED priority 500 {
+    # This event triggers after a server has been selected for load balancing
+    # but before the connection is established
+
+    # Outer switch statement: Select SNAT behavior based on destination server address
+    switch -- [LB::server addr] {
+        222.35.42.126 {
+            # For connections to server 222.35.42.126
+            # Inner switch: Further refine SNAT selection based on client IP
+            switch -- [IP::client_addr] {
+                192.168.3.11 {
+                    # For specific client 192.168.3.11 connecting to CRT server
+                    # Use a special test SNAT pool
+                    snatpool snat_crt_test2
+                }
+                default {
+                    # For all other clients connecting to CRT server
+                    # Use the standard CRT SNAT pool
+                    snatpool snat_crt_pool
+                }
+            }
+        }
+        221.218.248.155 {
+            # For connections to server 221.218.248.155 (likely a UNI server)
+            # Inner switch: Further refine SNAT selection based on client IP
+            switch -- [IP::client_addr] {
+                192.168.3.11 {
+                    # For specific client 192.168.3.11 connecting to UNI server
+                    # Use a special test SNAT pool
+                    snatpool snat_uni_test2
+                }
+                default {
+                    # For all other clients connecting to UNI server
+                    # Use the standard UNI SNAT pool
+                    snatpool snat_uni_pool
+                }
+            }
+        }
+        default {
+            # For connections to any other server not specifically listed
+            # Use SNAT automap (uses self-IP addresses for translation)
+            snat automap
+        }
     }
- }
+}

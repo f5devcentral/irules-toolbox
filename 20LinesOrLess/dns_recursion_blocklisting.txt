@@ -1,0 +1,31 @@
+when CLIENT_ACCEPTED priority 500 {
+  set BLOCKLIST_REPLY_IPV4 "10.10.10.10"
+  set BLOCKLIST_TTL "100"
+}
+when DNS_REQUEST priority 500 {
+  set Blocklist_Match 0
+  set Blocklist_Type ""
+  set domain_name [DNS::question name]
+  if { [DNS::header "rd"] == 1 } {
+    if { not [class match -- [IP::client_addr] eq "admin_datagroup" ] } {
+      DNS::drop
+    } elseif { [string tolower [class match -- $domain_name eq Blocklist_Class]] } {
+      set Blocklist_Match 1
+      DNS::return
+    }
+  }
+}
+when DNS_RESPONSE priority 500 {
+  if { $Blocklist_Match } {
+    switch -- [DNS::question type] {
+      "A" {
+        DNS::answer clear
+        DNS::answer insert "[DNS::question name]. $BLOCKLIST_TTL [DNS::question class] [DNS::question type] $BLOCKLIST_REPLY_IPV4"
+        DNS::header ra "1"
+      }
+      default {
+        DNS::last_act reject
+      }
+    }
+  }
+}

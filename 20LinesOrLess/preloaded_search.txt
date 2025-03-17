@@ -1,6 +1,8 @@
-when HTTP_REQUEST {
-  # Rewrite the host header to www.yahoo.com and the
-  # uri to /search?q=$host where $host is the originally requested hostname
-  HTTP::header replace "www.yahoo.com"
-  HTTP::uri "/search?q=[HTTP::host]"
+# Create an F5 BIG-IP iRule that rewrites incoming HTTP requests to redirect them to a Yahoo search. The rule should replace the host header with "www.yahoo.com" and modify the URI to "/search?q=" followed by the original requested hostname. This will effectively turn any request into a Yahoo search for the original domain name.
+
+when HTTP_REQUEST priority 500 {
+    # Rewrite the host header to www.yahoo.com and the
+    # uri to /search?q=$host where $host is the originally requested hostname
+    HTTP::header replace "www.yahoo.com"
+    HTTP::uri "/search?q=[HTTP::host]"
 }

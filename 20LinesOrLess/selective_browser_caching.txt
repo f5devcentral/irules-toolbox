@@ -1,12 +1,27 @@
-when HTTP_REQUEST {
-  set uri [HTTP::uri]
+# Create an F5 BIG-IP iRule that implements selective browser caching by setting different Cache-Control headers based on URI patterns. The rule should store the requested URI during the request phase, then check if the URI matches patterns in predefined data groups to apply either a 5-minute or 60-minute cache duration in the response phase.
+
+when HTTP_REQUEST priority 500 {
+    # Store the requested URI in a variable for later use in the response phase
+    # This allows us to examine the URI pattern when setting cache headers
+    set uri [HTTP::uri]
 }
 
-when HTTP_RESPONSE {
-  if { [matchclass $uri ends_with $::cache_5min] } {
-    HTTP::header replace "Cache-Control" "max-age=500"
-  } elseif { [matchclass $uri ends_with $::cache_60min] } {
-    HTTP::header replace "Cache-Control" "max-age=3600"
-  }
+when HTTP_RESPONSE priority 500 {
+    # Apply selective browser caching based on URI patterns
+    # Check if the URI ends with patterns defined in data groups
 
+    # If URI matches patterns in the "cache_5min" data group
+    # Set browser cache time to 500 seconds (about 8 minutes)
+    if { [class match -- $uri ends_with /Common/cache_5min] } {
+        HTTP::header replace "Cache-Control" "max-age=500"
+        return
+    }
+
+    # If URI matches patterns in the "cache_60min" data group
+    # Set browser cache time to 3600 seconds (60 minutes)
+    if { [class match -- $uri ends_with /Common/cache_60min] } {
+        HTTP::header replace "Cache-Control" "max-age=3600"
+        return
+    }
+    # For URIs not matching any pattern, the original Cache-Control header is preserved
 }

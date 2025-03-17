@@ -1,8 +1,8 @@
-when HTTP_REQUEST {
+when HTTP_REQUEST priority 500 {
   # Get day of month:
   # set day [clock format [clock seconds] -format {%d}]
   # Check if it is even
-  if {[clock format [clock seconds] -format {%d}] % 2 == 0 }{
+  if {[clock format [clock seconds] -format {%d}] % 2 == 0 } {
     # Check if the cookie value is not null:
     #    [HTTP::cookie my_cookie] ne ""
     # Get the last char of the cookie value:
@@ -13,7 +13,7 @@ when HTTP_REQUEST {
     #    [string is integer ...
     # Check if the last character is even using modulus %
     # string is integer: http://www.tcl.tk/man/tcl8.4/TclCmd/string.htm#M23
-    if {[HTTP::cookie my_cookie] ne "" and [string is integer [set last_char [string range [HTTP::cookie my_cookie] end end]]] and $last_char % 2 == 0 }{
+    if { [HTTP::cookie my_cookie] ne "" and [string is integer [set last_char [string range [HTTP::cookie my_cookie] end end]]] and $last_char % 2 == 0 } {
       # Allow the request. Exit this event in this iRule so we do not block the request
       return
     }

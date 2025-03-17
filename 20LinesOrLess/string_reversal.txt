@@ -15,7 +15,7 @@ set i [llength $client_cert_list]
 set client_cert ""
 
 # Loop through the list
-while {$i > 0}{
+while {$i > 0} {
 
   # Append the current list item to the string with a forward slash as the delineator
   append client_cert /[lindex $client_cert_list [incr i -1]]

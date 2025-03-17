@@ -1,8 +1,6 @@
-when HTTP_REQUEST {
-  if { [HTTP::uri] starts_with "/clone_me" } {
-    pool real_pool
+when HTTP_REQUEST priority 500 {
+  pool real_pool
+  if { [HTTP::uri -normalized] starts_with "/clone_me" } {
     clone pool clone_pool
-  } else {
-    pool real_pool
   }
 }

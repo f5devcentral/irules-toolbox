@@ -1,5 +1,5 @@
-when HTTP_RESPONSE {
-  if {[string tolower [HTTP::header Location]] starts_with "http://" }{
+when HTTP_RESPONSE priority 500 {
+  if {[string tolower [HTTP::header Location]] starts_with "http://" } {
     #Splits the Location Header string into a list
     # e.g. http://www.test.com/path1/path2/index.html = 'http:', '', 'www.test.com', 'path1', 'path2', 'index.html'
     set loc_list [split [HTTP::header Location] "/"]

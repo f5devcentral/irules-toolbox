@@ -1,7 +1,11 @@
-   1: when HTTP_REQUEST {
-   2:   if { !([HTTP::uri] contains "requestAgent") } {
-   3:     if { ([matchclass [HTTP::header "User-Agent"] contains $::MobileAgents]) } {
-   4:       HTTP::redirect "https://[HTTP::host][HTTP::uri]?requestAgent=mobile"
-   5:     }
-   6:   }
-   7: }
+when HTTP_REQUEST priority 500 {
+    if { ([HTTP::uri] contains "requestAgent") } {
+        return
+    }
+
+    if { !([class match -- [HTTP::header "User-Agent"] contains /Common/MobileAgents]) } {
+        return
+    }
+
+    HTTP::redirect "https://[HTTP::host][HTTP::uri]?requestAgent=mobile"
+}

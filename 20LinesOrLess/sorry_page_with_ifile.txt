@@ -1,8 +1,17 @@
-when HTTP_REQUEST {
-  if {[active_members [LB::server pool]] < 1} {
-    switch [HTTP::uri] {
-      "/" { HTTP::respond 200 content [ifile get "index"] }
-      "/f5-logo.jpg" { HTTP::respond 200 content [ifile get "logo"] }
+# Create an F5 iRule that serves a custom sorry page when all pool members are down. The iRule should check for active members in the server pool, and if none are available, serve appropriate content from iFiles based on the requested path. The iRule should handle the root path and logo requests with case-insensitive path matching.
+
+when HTTP_REQUEST priority 500 {
+    # Check if there is at least one active member in the server pool
+    if { [active_members [LB::server pool]] >= 1 } {
+        # If active members exist, continue normal request processing
+        return
     }
-  }
+
+    # If no active members are available, serve custom content based on the requested URI
+    switch -- [string tolower [HTTP::path]] {
+        # For the root path, serve the "index" content from ifile
+        "/" { HTTP::respond 200 content [ifile get "index"] }
+        # For the logo request, serve the "logo" content from ifile
+        "/f5-logo.jpg" { HTTP::respond 200 content [ifile get "logo"] }
+    }
 }

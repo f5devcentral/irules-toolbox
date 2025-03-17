@@ -1,17 +1,43 @@
-when HTTP_REQUEST {
-  set my_url [HTTP::host][HTTP::uri]
-  if { [HTTP::cookie BIGIP] contains "Redirect" } {
-    set count [findstr [HTTP::cookie BIGIP] "Redirect_" 9 1]
-  } else {
-      set count 0
-  }
+# Create an F5 BIG-IP iRule that automatically retries requests that receive 500 server errors. The rule should track the number of retry attempts using a cookie, redirect the client back to the same URL for up to four retries, and finally return a 404 error if all retry attempts fail.
+
+when HTTP_REQUEST priority 500 {
+    # Store the full URL (host + URI) for potential redirection later
+    set my_url [HTTP::host][HTTP::uri]
+
+    # Check if this is a retry request by looking for "Redirect" in the BIGIP cookie
+    if { [HTTP::cookie BIGIP] contains "Redirect" } {
+        # Extract the retry count from the cookie (format: "Redirect_N" where N is the count)
+        # findstr extracts the character at position 9+1 (the number after "Redirect_")
+        set count [findstr [HTTP::cookie BIGIP] "Redirect_" 9 1]
+
+        # Exit the rule and continue normal processing for this retry attempt
+        return
+    }
+
+    # If this is the initial request (no Redirect cookie), initialize the retry counter to 0
+    set count 0
 }
-when HTTP_RESPONSE {
-  if { [HTTP::status] == 500 && $count < 4 } {
-    incr count
-    HTTP::respond 302 Location "http://$my_url" Set-Cookie "BIGIP=Redirect_$count" Connection "Close"
-  } elseif { [HTTP::status] == 500 && $count == 4 } {
-      set count 0
-      HTTP::respond 404 Set-Cookie "BIGIP=Not_Found" Connection "Close"
-  }
+
+when HTTP_RESPONSE priority 500 {
+    # Check if the response is a 500 error and we haven't exceeded 4 retry attempts
+    if { [HTTP::status] == 500 && $count < 4 } {
+        # Increment the retry counter
+        incr count
+
+        # Redirect the client back to the same URL with a 302 response
+        # Include the retry count in a cookie to track number of attempts
+        # Close the connection to ensure a clean retry
+        HTTP::respond 302 Location "http://$my_url" Set-Cookie "BIGIP=Redirect_$count" Connection "Close"
+        return
+    }
+
+    # If we've already tried 4 times and still getting a 500 error
+    if { [HTTP::status] == 500 && $count == 4 } {
+        # Reset the counter
+        set count 0
+
+        # Give up and return a 404 Not Found instead of the 500 error
+        # This might be preferable to showing a server error to the user
+        HTTP::respond 404 Set-Cookie "BIGIP=Not_Found" Connection "Close"
+    }
 }

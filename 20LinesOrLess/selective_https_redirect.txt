@@ -1,8 +1,22 @@
-when HTTP_REQUEST {
-  if { [TCP::local_port] == 80 } {
-    log local0. "connecting on HTTP server"
-    if { [class match [HTTP::uri] starts_with secure_uris] } {
-      HTTP::redirect "http://[HTTP::host][HTTP::uri]"
+# Create an F5 BIG-IP iRule that selectively enforces HTTPS for specific URI patterns. The rule should only process requests on port 80, log connection information, check if the requested URI matches patterns in a "secure_uris" data group, and redirect matching requests to HTTPS while allowing non-matching URIs to continue using HTTP.
+
+when HTTP_REQUEST priority 500 {
+    # Only process requests coming in on port 80 (HTTP)
+    # Skip processing for other ports (like 443/HTTPS)
+    if { [TCP::local_port] != 80 } {
+        return
     }
-  }
+
+    # Log that a connection is being made via HTTP for troubleshooting
+    log local0. "connecting on HTTP server"
+    
+    # Check if the requested URI matches any patterns in the "secure_uris" data group
+    # This data group contains paths that should be accessed securely
+    if { [class match -- [HTTP::uri] starts_with /Common/secure_uris] } {
+        # Redirect matching requests to HTTPS (note: there appears to be a typo here - 
+        # the redirect is to "http://" not "https://", which would not enforce HTTPS)
+        # This should likely be "https://" to properly redirect to secure protocol
+        HTTP::redirect "http://[HTTP::host][HTTP::uri]"
+    }
+    # Non-matching URIs are allowed to continue using HTTP
 }

@@ -1,12 +1,31 @@
-# Option 1
-when HTTP_REQUEST {
-  if {[HTTP::host] ends_with ".olddomain.com"} {
-    HTTP::respond 301 Location "https://[getfield [HTTP::host] . 1].newdomain.com[HTTP::uri]"
-  }
+# Create two F5 BIG-IP iRules that redirect requests from an old domain to a new domain. Both rules should check if the requested host ends with ".olddomain.com" and respond with a 301 (Permanent Redirect) to the corresponding new domain if it does. The first rule should extract the subdomain and append it to ".newdomain.com". The second rule should replace "olddomain" with "newdomain" in the entire hostname. Both rules should preserve the original URI path and use HTTPS for the redirect.
+
+ltm rule redirect_domain_old_to_new_option_1 {
+    when HTTP_REQUEST priority 500 {
+        # Check if the host doesn't end with ".olddomain.com"
+        if {![[HTTP::host] ends_with ".olddomain.com"]} {
+            # If it doesn't, exit the rule
+            return
+        }
+
+        # Respond with a 301 (Permanent Redirect) to the new domain
+        # Get the first part of the hostname (before the first dot) and append ".newdomain.com"
+        # Preserve the original URI path
+        HTTP::respond 301 Location "https://[getfield [HTTP::host] . 1].newdomain.com[HTTP::uri]"
+    }
 }
-# Option 2
-when HTTP_REQUEST {
-  if {[HTTP::host] ends_with ".olddomain.com"} {
-    HTTP::respond 301 Location "https://[string map {olddomain newdomain} [HTTP::host]][HTTP::uri]"
-  }
+
+ltm rule redirect_domain_old_to_new_option_2 {
+    when HTTP_REQUEST priority 500 {
+        # Check if the host doesn't end with ".olddomain.com"
+        if {![[HTTP::host] ends_with ".olddomain.com"]} {
+            # If it doesn't, exit the rule
+            return
+        }
+
+        # Respond with a 301 (Permanent Redirect) to the new domain
+        # Replace "olddomain" with "newdomain" in the entire hostname
+        # Preserve the original URI path
+        HTTP::respond 301 Location "https://[string map {olddomain newdomain} [HTTP::host]][HTTP::uri]"
+    }
 }

@@ -1,9 +1,19 @@
-when RULE_INIT {
-   set static::vDebug 1
+# Create an F5 BIG-IP iRule to detect and prevent potential path traversal attacks in HTTP requests. The rule should check the query string for suspicious patterns, log details of potential attacks for debugging purposes, and reject any requests that appear to be attempting path traversal. Include a debug flag that can be easily enabled or disabled.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Initialize DEBUG variable to 1 (true) for logging purposes
+    set DEBUG 1
 }
-when HTTP_REQUEST {
-  if { [HTTP::query] matches_regex {^.*=(\.\.|/)[[A-Za-z0-9./]*]*.*$} } {
-    if { $static::vDebug } { log local0. "Triggered by IP [IP::client_addr] with URI [HTTP::uri]" }
-    reject
-  }
+
+when HTTP_REQUEST priority 500 {
+    # Check if the query string contains potential path traversal attempts
+    # The regex looks for '..' or '/' followed by any combination of alphanumeric characters, dots, or slashes
+    if { [HTTP::query] matches_regex {^.*=(\.\.|/)[[A-Za-z0-9./]*]*.*$} } {
+        # If DEBUG is enabled, log the client IP and the normalized URI
+        if { ${DEBUG} } { 
+            log local0. "Triggered by IP [IP::client_addr] with URI [HTTP::uri -normalized]" 
+        }
+        # Reject the request if a potential path traversal is detected
+        reject
+    }
 }

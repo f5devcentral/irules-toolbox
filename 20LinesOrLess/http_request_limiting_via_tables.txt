@@ -1,13 +1,13 @@
-when HTTP_REQUEST timing on {
-   set request_limit_reached [ table lookup "request_limit_reached" ]
-   if { [expr [table incr "counter_all_requests"] % 15] == 0 } {
+when HTTP_REQUEST priority 500 timing on {
+   set request_limit_reached [table lookup -- "request_limit_reached"]
+   if { [expr {[table incr -- "counter_all_requests"] % 15}] == 0 } {
       if { $request_limit_reached < 2 } {
-          set request_limit_reached [ table incr "request_limit_reached" ]
-          table timeout "request_limit_reached" 1
-          table lifetime "request_limit_reached" 1
+         set request_limit_reached [table incr -- "request_limit_reached"]
+         table timeout -- "request_limit_reached" 1
+         table lifetime -- "request_limit_reached" 1
       }
    }
    if { $request_limit_reached >= 2 } {
-      HTTP::respond 500
+      HTTP::respond 500 noserver
    }
 }

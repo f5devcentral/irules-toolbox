@@ -1,12 +1,27 @@
-when RULE_INIT {
-    set static::start_time 221500
-    set static::end_time 001459
-    set static::days [list "Wednesday" "Thursday"]
+# Create an F5 iRule that implements a scheduled maintenance window. The iRule should define a maintenance period from 10:15 PM Wednesday to 12:14:59 AM Thursday, check if the current time falls within this window, and return appropriate HTTP responses with different messages for normal operation versus maintenance mode.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Define the start time for the maintenance window in HHMMSS format (10:15:00 PM)
+    set START_TIME 221500
+    
+    # Define the end time for the maintenance window in HHMMSS format (12:14:59 AM)
+    # Note: This crosses midnight into the next day
+    set END_TIME 001459
+    
+    # Define which days of the week the maintenance window applies to
+    # In this case, maintenance starts on Wednesday night and ends early Thursday morning
+    set DAYS [list "Wednesday" "Thursday"]
 }
-when HTTP_REQUEST {
+
+when HTTP_REQUEST priority 500 {
+    # Get the current day of the week and time in HHMMSS format
+    # scan command parses the formatted time into two variables: cur_day and cur_time
     scan [clock format [clock seconds] -format {%A %H%M%S}] {%s %s} cur_day cur_time
 
     ### FOR TESTING PURPOSES ONLY ###
+    # These commented lines allow testing the iRule with specific timestamps
+    # Each line simulates a different point relative to the maintenance window
+    
     # immediately before the maintenance window
     #scan [clock format [clock scan "Wed Jan 20 22:14:59 CST 2021"] -format {%A %H%M%S}] {%s %s} cur_day cur_time
     # at very beginning of the maintenance window
@@ -17,12 +32,23 @@ when HTTP_REQUEST {
     #scan [clock format [clock scan "Thu Jan 21 00:15:00 CST 2021"] -format {%A %H%M%S}] {%s %s} cur_day cur_time
     ### END TESTING STRINGS ###
 
-    if { !(($cur_day eq [lindex $static::days 0]) && ($cur_time >= $static::start_time)) &&
-         !(($cur_day eq [lindex $static::days 1]) && ($cur_time <= $static::end_time)) } {
-             # NORMAL CONDITION
-             HTTP::respond 200 content "Situation: Normal. $cur_day, $cur_time "
-    } else {
-        # MAINTENANCE CONDITION
-        HTTP::respond 200 content "Situation: Maintenance. $cur_day, $cur_time "
+    # Check if we're NOT in the maintenance window
+    # The maintenance window spans from Wednesday 22:15:00 to Thursday 00:14:59
+    # The complex condition checks:
+    # 1. If it's NOT Wednesday after or at start time, AND
+    # 2. If it's NOT Thursday before or at end time
+    if { !(($cur_day eq [lindex $DAYS 0]) && ($cur_time >= $START_TIME)) &&
+         !(($cur_day eq [lindex $DAYS 1]) && ($cur_time <= $END_TIME)) } {
+        # NORMAL CONDITION - Outside maintenance window
+        # Return a 200 OK response with a message indicating normal operation
+        # Also includes the current day and time for debugging
+        HTTP::respond 200 content "Situation: Normal. $cur_day, $cur_time"
+        return
     }
+
+    # MAINTENANCE CONDITION - Inside maintenance window
+    # If execution reaches here, we're in the maintenance window
+    # Return a 200 OK response with a message indicating maintenance mode
+    # Also includes the current day and time for debugging
+    HTTP::respond 200 content "Situation: Maintenance. $cur_day, $cur_time"
 }

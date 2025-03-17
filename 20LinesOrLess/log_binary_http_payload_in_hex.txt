@@ -1,30 +1,31 @@
-when HTTP_REQUEST {
+when CLIENT_ACCEPTED priority 500 {
+   # Log DEBUG? 1=yes, 0=no
+   set DEBUG 1
+}
 
-   # Log debug? 1=yes, 0=no
-   set debug 1
-
+when HTTP_REQUEST priority 500 {
    # Collect up to the first 1MB of POST data
-   if {[HTTP::method] eq "POST"}{
+   if {[HTTP::method] eq "POST"} {
 
       set clength 0
 
       # Check if there is a content-length header and the value is set to less than 1Mb
-      if {[HTTP::header exists "Content-Length"] && [HTTP::header Content-Length]
-        set clength [HTTP::header Content-Length]
+      if { [HTTP::header exists "Content-Length"] && [HTTP::header Content-Length] } {
+         set clength [HTTP::header Content-Length]
       } else {
          set clength 1048576
       }
+
       if {[info exists clength] && clength > 0} {
-         if {$debug}{log local0. "[virtual name]: Collecting $clength bytes"}
+         if {$DEBUG} {log local0. "[virtual name]: Collecting $clength bytes"}
          HTTP::collect $clength
       }
    }
 }
 
-when HTTP_REQUEST_DATA {
-
+when HTTP_REQUEST_DATA priority 500 {
    # Log the payload converted to hex
    binary scan [HTTP::payload] H* payload_hex
 
-   if {$debug}{log local0. "[virtual name]: $payload_hex: $payload_hex"}
+   if {$DEBUG} {log local0. "[virtual name]: $payload_hex: $payload_hex"}
 }

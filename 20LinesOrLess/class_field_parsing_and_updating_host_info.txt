@@ -1,17 +1,24 @@
-when HTTP_REQUEST {
-  #find a match using host+uri against the class and
-  #returns the whole string (field1 field2 field3)then
-  #set it as newURI variable.
-  set newURI "[findclass [HTTP::host][HTTP::uri] $::redlist]"
-  if { $newURI ne "" } {
-    # Parse the three fields in the matched datagroup line
+# Write an F5 iRule to Check if the combination of the host and URI from the HTTP request matches an entry in the /Common/redlist datagroup. If a match is found, update the Host header and URI with the new values provided in the match. If no match is found, do nothing.
+
+when HTTP_REQUEST priority 500 {
+    # Attempt to find a match in the /Common/redlist datagroup using the combination of the host and URI from the HTTP request.
+    # If a match is found, the corresponding value (a string with three fields) is stored in the newURI variable.
+    if { [set newURI [class match -value -- "[HTTP::host][HTTP::uri]" equals /Common/redlist]] eq "" } {
+        # If no match is found (newURI is an empty string), return and do nothing.
+        return
+    }
+
+    # Parse the newURI variable, which contains three fields separated by spaces. 
+    # The fields are assigned to the variables 'unused', 'host', and 'uri' respectively.
     scan $newURI {%s %s %s} unused host uri
-    #change host and uri
-    if {$host ne ""}{
-      HTTP::header replace Host $host
+
+    # If the 'host' variable is not empty, replace the Host header in the HTTP request with the new value.
+    if { $host ne "" } {
+        HTTP::header replace Host $host
     }
-    if {$uri ne ""}{
-      HTTP::uri $uri
+
+    # If the 'uri' variable is not empty, replace the URI in the HTTP request with the new value.
+    if { $uri ne "" } {
+        HTTP::uri $uri
     }
-  }
 }

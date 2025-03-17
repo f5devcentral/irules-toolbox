@@ -1,12 +1,34 @@
-when STREAM_MATCHED {
-  # log each match found by the stream filter
-  scan [STREAM::match] "Username=%s" user
-  log local0. "Username [b64decode $user] had password replaced"
-  STREAM::replace "Username=$user\nUserpassword=0000=\n"
+# Create an F5 iRule that redacts passwords in data streams and logs server selection. The iRule should use stream matching to find username and password patterns, extract and decode the base64 username, log when a password is replaced, substitute the original password with "0000=", and separately log the IP address of the server selected by the load balancer.
+
+when STREAM_MATCHED priority 500 {
+    # This event triggers when the stream filter finds a pattern match in the data
+    # It requires a stream profile be attached to the Virtual Server
+    
+    # Extract the username from the matched data using scan
+    # The scan command parses the matched string looking for "Username=%s" pattern
+    # and stores the captured value in the 'user' variable
+    scan [STREAM::match] "Username=%s" user
+    
+    # Log the decoded username (assumes username is base64 encoded)
+    # b64decode converts the base64-encoded username to readable text
+    # This helps with auditing password replacement operations
+    log local0. "Username [b64decode $user] had password replaced"
+    
+    # Replace the matched content with modified content
+    # This keeps the original username but replaces the password section
+    # The password is replaced with "0000=" for security purposes
+    STREAM::replace "Username=$user\nUserpassword=0000=\n"
 }
 
 
-when LB_SELECTED  {
-set serverIP [LB::server addr]
-log local0. "LB Server IP $serverIP"
+when LB_SELECTED priority 500 {
+    # This event triggers after a load balancing decision has been made
+    
+    # Get the IP address of the selected server
+    # LB::server addr returns the IP of the server chosen by the load balancer
+    set serverIP [LB::server addr]
+    
+    # Log the server IP address for monitoring/debugging purposes
+    # This helps track which backend server is handling each request
+    log local0. "LB Server IP $serverIP"
 }

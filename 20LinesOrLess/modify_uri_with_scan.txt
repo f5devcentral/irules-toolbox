@@ -1,16 +1,15 @@
-when HTTP_REQUEST {
-
+when HTTP_REQUEST priority 500 {
     log local0. "[IP::client_addr]:[TCP::client_port]: New HTTP request to [HTTP::uri]"
 
-    if { [HTTP::uri] contains "adserver/impression" }{
-       log local0. "[IP::client_addr]:[TCP::client_port]: Matched URI check"
+    if { [HTTP::uri] contains "adserver/impression" } {
+        log local0. "[IP::client_addr]:[TCP::client_port]: Matched URI check"
 
-       # Scan the URI looking for the pid, oid and rand values
-       if { [scan [HTTP::uri] {/adserver/impression/pid=%[^/]/oid=%[^/]/rand=%[^/]} pid oid rand] == 3 } {
+        # Scan the URI looking for the pid, oid and rand values
+        if { [scan [HTTP::uri] {/adserver/impression/pid=%[^/]/oid=%[^/]/rand=%[^/]} pid oid rand] == 3 } {
 
-          log local0. "[IP::client_addr]:[TCP::client_port]: Scanned three values: pid = $pid, oid = $oid, rand = $rand"
-          HTTP::uri [string map "adserver/impression/pid=$pid/oid=$oid/rand=$rand/?click ad.imp?pid=$pid&oid=$oid&rand=$rand/?pclk" [HTTP::uri]]
-       }
+            log local0. "[IP::client_addr]:[TCP::client_port]: Scanned three values: pid = $pid, oid = $oid, rand = $rand"
+            HTTP::uri [string map "adserver/impression/pid=$pid/oid=$oid/rand=$rand/?click ad.imp?pid=$pid&oid=$oid&rand=$rand/?pclk" [HTTP::uri]]
+        }
     }
 }
 when HTTP_REQUEST priority 501 {

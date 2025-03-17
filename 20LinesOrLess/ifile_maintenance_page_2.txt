@@ -1,18 +1,19 @@
-when HTTP_REQUEST {
-  if { [active_members [LB::server pool]] < 1} {
-    switch [string tolower [HTTP::uri]] {
-      "/" {
-        HTTP::respond 200 content [ifile get index.html] "Content-Type" "text/html"
-      }
-      "/ufstyle.css" {
-        HTTP::respond 200 content [ifile get ufstyle.css] "Content-Type" "text/css"
-      }
-      "/myuflheaderborder.jpg" {
-        HTTP::respond 200 content [ifile get myuflheaderborder.jpg] "Content-Type" "image/jpeg"
-      }
-      "/myuflheader_bg.jpg" {
-        HTTP::respond 200 content [ifile get myuflheader_bg.jpg] "Content-Type" "image/jpeg"
-      }
+when HTTP_REQUEST priority 500 {
+  if { [active_members [LB::server pool]] >= 1} {
+    return
+  }
+  switch -- [string tolower [HTTP::uri]] {
+    "/" {
+      HTTP::respond 200 content [ifile get index.html] "Content-Type" "text/html"
+    }
+    "/ufstyle.css" {
+      HTTP::respond 200 content [ifile get ufstyle.css] "Content-Type" "text/css"
+    }
+    "/myuflheaderborder.jpg" {
+      HTTP::respond 200 content [ifile get myuflheaderborder.jpg] "Content-Type" "image/jpeg"
+    }
+    "/myuflheader_bg.jpg" {
+      HTTP::respond 200 content [ifile get myuflheader_bg.jpg] "Content-Type" "image/jpeg"
     }
   }
 }

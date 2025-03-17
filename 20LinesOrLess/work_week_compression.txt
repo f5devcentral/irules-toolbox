@@ -1,12 +1,31 @@
-when CLIENT_ACCEPTED {
-  set time_r [split [clock format [clock seconds] -format {%k:%M} ] " "]
-  set time_f [expr {[expr {[lindex $time_r 0]*100}] + [lindex $time_r 1]}]
-  if { not(($time_f >= 800) && ($time_f <= 1700)) } {
-    set compression "off"
-  }
+# Create an F5 iRule that disables HTTP compression outside of business hours. The iRule should check if the time falls outside the 8:00 AM to 5:00 PM window, and disable compression for HTTP responses during these off-peak hours to save CPU resources.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Get the current time in 24-hour format (hours:minutes)
+    # clock seconds returns current Unix timestamp
+    # clock format converts it to readable time format
+    # %k:%M gives hour (0-23, space padded) and minute
+    set time_r [split [clock format [clock seconds] -format {%k:%M} ] " "]
+    
+    # Convert the time to a numeric value for easier comparison
+    # Multiply hours by 100 and add minutes to get a value like 830 for 8:30
+    # This creates a number that can be directly compared with 800 and 1700
+    set time_f [expr {[expr {[lindex $time_r 0]*100}] + [lindex $time_r 1]}]
+    
+    # Check if current time is outside business hours (8:00 AM to 5:00 PM)
+    # If outside working hours, set compression to "off"
+    # The "not" operator inverts the condition to check for non-business hours
+    if { not(($time_f >= 800) && ($time_f <= 1700)) } {
+        set compression "off"
+    }
 }
-when HTTP_RESPONSE {
-  if { $compression eq "off" } {
-    COMPRESS::disable
-  }
+
+when HTTP_RESPONSE priority 500 {
+    # When sending HTTP responses, check if compression should be disabled
+    # This is based on the time check performed during CLIENT_ACCEPTED
+    if { $compression eq "off" } {
+        # Disable compression for responses outside of business hours
+        # This can save CPU resources during off-peak times
+        COMPRESS::disable
+    }
 }

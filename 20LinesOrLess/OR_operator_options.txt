@@ -1,24 +1,39 @@
-# Option 1
-when HTTP_REQUEST {
-  if { ([HTTP::uri] starts_with "/path/to/broken") || ([HTTP::uri] starts_with "/other/path/broken") } {
-    HTTP::redirect "maintenance.html"
-    #Note: Modified URL for forum posting.
-  }
-}
+# Write an F5 BIG-IP iRule that redirects users to a maintenance page when they try to access certain broken parts of a website. Show a few different ways to do this if possible.
 
-# Option 2
-when HTTP_REQUEST {
-  switch -glob [HTTP::uri] {
-    "/path/to/broken*" -
-    "/other/path/broken*" {
-      HTTP::redirect "/maintenance.html"
+# Option 1: Using OR operator
+ltm rule or_operator_option_1 {
+    when HTTP_REQUEST priority 500 {
+        # Check if the URI starts with either of two specific paths
+        if { ([HTTP::uri] starts_with "/path/to/broken") || ([HTTP::uri] starts_with "/other/path/broken") } {
+            # If the condition is met, redirect the user to the maintenance page
+            HTTP::redirect "maintenance.html"
+            # Note: Modified URL for forum posting.
+        }
     }
-  }
 }
 
-# Option 3
-when HTTP_REQUEST {
-  if {[class match [HTTP::uri] equals myUris]} {
-    HTTP::redirect "/maintenance.html"
-  }
+# Option 2: Using switch statement with glob matching
+ltm rule or_operator_option_2 {
+    when HTTP_REQUEST priority 500 {
+        # Use switch statement with glob matching to check the URI
+        switch -glob -- [HTTP::uri] {
+            # If the URI starts with either of these paths
+            "/path/to/broken*" -
+            "/other/path/broken*" {
+                # Redirect the user to the maintenance page
+                HTTP::redirect "/maintenance.html"
+            }
+        }
+    }
+}
+
+# Option 3: Using class matching
+ltm rule or_operator_option_2 {
+    when HTTP_REQUEST priority 500 {
+        # Check if the URI matches any in the predefined class 'myUris'
+        if { [class match -- [HTTP::uri] equals /Common/myUris] } {
+            # If there's a match, redirect the user to the maintenance page
+            HTTP::redirect "/maintenance.html"
+        }
+    }
 }

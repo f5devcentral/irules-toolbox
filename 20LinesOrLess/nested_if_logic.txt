@@ -1,15 +1,37 @@
-when HTTP_REQUEST {
-  if {[class match [IP::client_addr] eq test_dg] } {
-    if {[HTTP::uri] contains "/cf/" or [HTTP::uri] contains "/hf/"} {
-      pool PoolA
-    } else {
-      pool PoolB
+# Create an F5 iRule that routes HTTP requests to different pools based on the client's IP address and the request URI. The rule should check if the client is in a specific data group, and if the URI contains certain patterns like "/cf/", "/hf/", or "/vh/". Use a switch statement to efficiently handle the routing logic, with a default pool for unmatched cases.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the client IP is in the test_dg data group
+    set client_in_test_dg [class match -- [IP::client_addr] eq test_dg]
+
+    # Check if the URI contains "/cf/" or "/hf/"
+    set uri_contains_cf_or_hf [expr {[HTTP::uri] contains "/cf/" || [HTTP::uri] contains "/hf/"}]
+
+    # Check if the URI contains "/vh/"
+    set uri_contains_vh [expr {[HTTP::uri] contains "/vh/"}]
+
+    # Use a switch statement to determine which pool to use based on the combination of conditions
+    # The switch key is a comma-separated string of boolean values (0 or 1) for each condition
+    switch -- "${uri_contains_vh},${client_in_test_dg},${uri_contains_cf_or_hf}" {
+        0,1,1 {
+            # URI doesn't contain "vh", client is in test_dg, URI contains "cf" or "hf"
+            pool PoolA
+        }
+        0,1,0 {
+            # URI doesn't contain "vh", client is in test_dg, URI doesn't contain "cf" or "hf"
+            pool PoolB
+        }
+        0,0,1 {
+            # URI doesn't contain "vh", client is not in test_dg, URI contains "cf" or "hf"
+            pool PoolC
+        }
+        1,0,0 {
+            # URI contains "vh", client is not in test_dg, URI doesn't contain "cf" or "hf"
+            pool PoolD
+        }
+        default {
+            # If none of the above conditions are met, use the default pool
+            pool Default
+        }
     }
-  } elseif {[HTTP::uri] contains "/cf/" or [HTTP::uri] contains "/hf/" } {
-    pool PoolC
-  } elseif {[HTTP::uri] contains "/vh/"} {
-    pool PoolD
-  } else {
-    pool Default
-  }
 }

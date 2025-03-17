@@ -1,18 +1,47 @@
+# Explain the differences between 301 redirects, 302 redirects, and VIP-to-VIP routing in F5 iRules, including when each should be used, how they affect client experience.
+
 # 302 Redirect
-when HTTP_REQUEST {
-    if { ...some condition... } {
-        HTTP::redirect "https://somewhere.else.com"
+ltm rule redirect_302 {
+    when HTTP_REQUEST priority 500 {
+        # This event triggers when an HTTP request is received
+        
+        if { ...some condition... } {
+            # When the specified condition is met, perform a temporary redirect
+            # HTTP 302 is a temporary redirect that tells clients the resource
+            # has been temporarily moved to a different URL
+            # Browsers typically don't update bookmarks for 302 redirects
+            HTTP::redirect "https://somewhere.else.com"
+        }
     }
 }
+
 # 301 Redirect
-when HTTP_REQUEST {
-    if { ...some condition... } {
-        HTTP::respond 301 Location "https://somewhere.else.com"
+ltm rule redirect_301 {
+    when HTTP_REQUEST priority 500 {
+        # This event triggers when an HTTP request is received
+        
+        if { ...some condition... } {
+            # When the specified condition is met, perform a permanent redirect
+            # HTTP 301 is a permanent redirect that tells clients the resource
+            # has been permanently moved to a different URL
+            # Browsers typically update bookmarks for 301 redirects
+            # Search engines transfer link equity to the new URL
+            HTTP::respond 301 Location "https://somewhere.else.com"
+        }
     }
 }
+
 # Vip-to-Vip direct
-when HTTP_REQUEST {
-    if { ...some condition... } {
-        virtual internal-vs
+ltm rule redirect_vip {
+    when HTTP_REQUEST priority 500 {
+        # This event triggers when an HTTP request is received
+        
+        if { ...some condition... } {
+            # When the specified condition is met, internally route the request
+            # to another virtual server without client redirection
+            # This is an internal traffic steering mechanism that is transparent to the client
+            # The client's URL doesn't change, only the backend processing changes
+            virtual internal-vs
+        }
     }
 }

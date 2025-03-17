@@ -1,20 +1,27 @@
- when HTTP_REQUEST {
+# Create an F5 BIG-IP iRule that routes HTTP requests to different pools based on the first two characters of the URL path. The rule should use case-insensitive matching and handle paths starting with /a, /b, and /c, followed by specific ranges of letters. Include a default case for paths that don't match any specified patterns. The rule should have default priority and use efficient matching techniques.
+
+when HTTP_REQUEST priority 500 {
     # Parse the first then second character in the path
-    switch -glob [string tolower [HTTP::path]] {
-       "/a[a-l]*" {
-          pool reward-uat5.123.com_AA2AL
-       }
-       "/a[m-z]*" -
-       "/b[a-l]*" {
-          pool reward-uat5.123.com_AM2BL
-       }
-       "/b[m-z]*" -
-       "/c[a-d]*" {
-          pool reward-uat5.123.com_BM2CD
-       }
-       default {
-          # Requested URI was a leading forward slash only
-          pool reward-uat5.123.com_AA2AL
-       }
+    # Convert the path to lowercase for case-insensitive matching
+    switch -glob -- [string tolower [HTTP::path]] {
+        # If path starts with /a followed by a-l, route to this pool
+        "/a[a-l]*" {
+            pool reward-uat5.123.com_AA2AL
+        }
+        # If path starts with /a followed by m-z, or /b followed by a-l, route to this pool
+        "/a[m-z]*" -
+        "/b[a-l]*" {
+            pool reward-uat5.123.com_AM2BL
+        }
+        # If path starts with /b followed by m-z, or /c followed by a-d, route to this pool
+        "/b[m-z]*" -
+        "/c[a-d]*" {
+            pool reward-uat5.123.com_BM2CD
+        }
+        # Default case: if none of the above patterns match (including just a forward slash)
+        default {
+            # Route to the first pool as a fallback
+            pool reward-uat5.123.com_AA2AL
+        }
     }
- }
+}

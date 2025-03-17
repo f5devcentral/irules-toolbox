@@ -1,6 +1,6 @@
-when HTTP_REQUEST {
+when HTTP_REQUEST priority 500 {
   set ID [findstr [HTTP::cookie "CookieX"] "Cookie" 10 ";"]
-  set my_uri [string tolower [HTTP::uri]]
+  set my_uri [string tolower [HTTP::uri -normalized]]
   log local0.info "ID is $ID default pool is [LB::server pool] URI is $my_uri"
   if {($ID equals "")} {
     log local0.info "sending user to pool [LB::server pool]"

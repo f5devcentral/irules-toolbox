@@ -1,23 +1,45 @@
-when RULE_INIT {
-     set ::count 0
-   }
+# Create an F5 iRule that manages pool failover with session tracking. The iRule should route traffic to a primary pool when available, failover to a secondary pool when needed, track the failover state using a persistent table with 24-hour timeout, and clean sessions when switching back from secondary to primary pool.
 
- when CLIENT_ACCEPTED {
-    if { [active_members pool_a] > 0 } {
-       pool pool_a
-      log local0. "primary active"
-    if { $::count == 1 } {
-        log "clean sessions"
-       set ::count 0 }
-
-    } else {
-       pool pool_b
-  log local0. "secondary active"
-  set ::count 1
+when CLIENT_ACCEPTED priority 500 {
+    # Check if a counter for this virtual server exists in the session table
+    # If not, create it with initial value 0 and 24-hour (86400 seconds) timeout
+    if { [table lookup -notouch -- [virtual]-count] eq "" } {
+        table set -- [virtual]-count 0 0 86400
     }
- }
- when LB_FAILED {
+
+    # Check if the primary pool has any active members
+    if { [active_members pool_a] > 0 } {
+        # Route traffic to the primary pool if it has active members
+        pool pool_a
+        
+        # Log that the primary pool is being used
+        log local0. "primary active"
+
+        # If we previously failed over to secondary pool (count=1),
+        # log that we're cleaning sessions and reset the counter to 0
+        if { [table lookup -notouch -- [virtual]-count] == 1 } {
+            log "clean sessions"
+            table set -notouch -- [virtual]-count 0
+        }
+        # Exit the event handler
+        return
+    }
+
+    # If primary pool has no active members, use the secondary pool
     pool pool_b
-  set ::count 1
-  log local0. "Selected member: [LB::server addr]"
- }
+    # Log that the secondary pool is being used
+    log local0. "secondary active"
+    # Set the counter to 1 to indicate we're using the secondary pool
+    # This will trigger session cleaning when we switch back to primary
+    table set -notouch -- [virtual]-count 1
+}
+
+when LB_FAILED priority 500 {
+    # This event triggers when load balancing to the selected pool fails
+    # Redirect traffic to the secondary pool as a fallback
+    pool pool_b
+    # Set the counter to 1 to indicate we're using the secondary pool
+    table set -notouch -- [virtual]-count 1
+    # Log which server was selected from the secondary pool
+    log local0. "Selected member: [LB::server addr]"
+}

@@ -1,16 +1,17 @@
-when HTTP_REQUEST { set host [HTTP::host]
-  set username [HTTP::username]
-  set client_IP [IP::client_addr]
-  set request "\"[HTTP::method] [HTTP::uri] HTTP/[HTTP::version]\""
-  set request_time [clock clicks -milliseconds]
-  set referer [HTTP::header "Referer"]
-  set ua [HTTP::header "User-Agent"]
-  set xff [HTTP::header "X-Forwarded-For"]
+when HTTP_REQUEST priority 500 {
+    set host [HTTP::host]
+    set username [HTTP::username]
+    set client_IP [IP::client_addr]
+    set request "\"[HTTP::method] [HTTP::uri] HTTP/[HTTP::version]\""
+    set request_time [clock clicks -milliseconds]
+    set referer [HTTP::header "Referer"]
+    set ua [HTTP::header "User-Agent"]
+    set xff [HTTP::header "X-Forwarded-For"]
 }
-when HTTP_RESPONSE {
-  set response_time [expr [clock clicks -milliseconds] - $request_time]
-  set now [clock format [clock seconds] -format "%d/%b/%Y:%H:%M:%S %z"]
-  set contentlength [HTTP::header "Content-Length"]
-  set status [HTTP::status]
-  HSL::send [HSL::open -proto TCP -pool /CLI01_COPR/POOL_SYSLOG] "$host $client_IP $username $now $request $status $contentlength \"$referer\" \"$ua\" \"$xff\" $response_time"
+when HTTP_RESPONSE priority 500 {
+    set response_time [expr {[clock clicks -milliseconds] - $request_time}]
+    set now [clock format [clock seconds] -format "%d/%b/%Y:%H:%M:%S %z"]
+    set contentlength [HTTP::header "Content-Length"]
+    set status [HTTP::status]
+    HSL::send [HSL::open -proto TCP -pool /CLI01_COPR/POOL_SYSLOG] "$host $client_IP $username $now $request $status $contentlength \"$referer\" \"$ua\" \"$xff\" $response_time"
 }

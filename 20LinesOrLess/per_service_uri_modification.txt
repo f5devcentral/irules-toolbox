@@ -1,7 +1,13 @@
-when HTTP_REQUEST {
-  switch -glob [string tolower [HTTP::uri] {
-    "*service" {
-      HTTP::uri "/myservice"
+# Create an F5 BIG-IP iRule that modifies the URI of incoming HTTP requests. The rule should check if the URI ends with the word "service". If it does, change the entire URI to "/myservice". Leave all other requests unchanged.
+
+when HTTP_REQUEST priority 500 {
+    # Use a switch statement with glob matching to check the lowercase URI
+    switch -glob -- [string tolower [HTTP::uri]] {
+        # If the URI contains "service" anywhere in the path
+        "*service" {
+            # Modify the URI to "/myservice"
+            HTTP::uri "/myservice"
+        }
+        # Note: There's no default case, so requests not matching "*service" are unaffected
     }
-  }
 }

@@ -1,10 +1,27 @@
-when HTTP_REQUEST {
-  switch -glob [string tolower [HTTP::uri]] {
-    "*hypplanning*" {
-      node 10.x.x.x%x:x
+# Create an F5 iRule that routes HTTP requests to specific backend nodes based on URI content. The iRule should use case-insensitive pattern matching to check if the URI contains "hypplanning" or "drmservice", and direct matching requests to the appropriate node with specific IP addresses, interfaces, and ports.
+
+when HTTP_REQUEST priority 500 {
+    # This event triggers when an HTTP request is received
+    
+    # Use switch with glob pattern matching to examine the lowercase URI
+    # -glob enables wildcard matching with * to match any characters
+    # -- marks the end of switch options
+    # [string tolower [HTTP::uri]] converts the URI to lowercase for case-insensitive matching
+    switch -glob -- [string tolower [HTTP::uri]] {
+        # If the URI contains "hypplanning" anywhere in the path
+        # Example: "/path/to/hypplanning/resource" or "?param=hypplanning"
+        "*hypplanning*" {
+            # Route this request to a specific backend node with IP 10.x.x.x on interface x and port x
+            # The %x syntax specifies which network interface to use (route domain)
+            node 10.x.x.x%x:x
+        }
+        # If the URI contains "drmservice" anywhere in the path
+        # Example: "/path/to/drmservice/resource" or "?param=drmservice"
+        "*drmservice*" {
+            # Route this request to a different backend node with IP 10.x.x.x on interface x and port y
+            node 10.x.x.x%x:y
+        }
+        # Implicit default case: if none of the patterns match, 
+        # the request continues to the default pool or next iRule
     }
-    "*drmservice*" {
-      node 10.x.x.x%x:y
-    }
-  }
 }

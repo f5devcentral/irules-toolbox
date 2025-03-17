@@ -1,6 +1,17 @@
-when HTTP_REQUEST {
-  if {!([HTTP::path] ends_with "/")} {
+# Create an F5 iRule that enforces trailing slashes on URLs. The iRule should check if the path already ends with a slash, exit if it does, otherwise append a trailing slash to the current path and redirect the client to the new URI with a 302 redirect.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the normalized path already ends with a trailing slash
+    # If it does, exit the iRule and continue normal processing
+    if { [HTTP::path -normalized] ends_with "/" } {
+        return
+    }
+
+    # Append a trailing slash to the current path
+    # This modifies the path component of the URI
     HTTP::path "[HTTP::path]/"
+    
+    # Redirect the client to the new URI with the trailing slash
+    # This sends a 302 redirect to the browser with the updated URI
     HTTP::redirect [HTTP::uri]
-  }
 }

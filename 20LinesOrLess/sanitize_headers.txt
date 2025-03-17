@@ -1,14 +1,20 @@
-when HTTP_RESPONSE {
+# Create an F5 BIG-IP iRule that enhances security by sanitizing HTTP response headers. The rule should remove the Server header to prevent web server fingerprinting and strip all custom X- headers that might expose implementation details or sensitive information.
 
+when HTTP_RESPONSE priority 500 {
     # Remove all instances of the Server header
+    # This prevents information disclosure about the web server software and version
+    # which reduces potential attack surface by preventing server fingerprinting
     HTTP::header remove Server
 
     # Remove all headers starting with x-
+    # These are typically non-standard headers that might reveal implementation details
+    # Loop through all header names in the response
     foreach header_name [HTTP::header names] {
-
-       if {[string match -nocase x-* $header_name]}{
-
-          HTTP::header remove $header_name
-       }
+        # Check if the current header name starts with "x-" (case-insensitive)
+        # The -nocase flag ensures we catch headers regardless of capitalization
+        if { [string match -nocase x-* $header_name] } {
+            # Remove the matching header to prevent information disclosure
+            HTTP::header remove $header_name
+        }
     }
- }
+}

@@ -1,4 +1,4 @@
-when HTTP_RESPONSE {
+when HTTP_RESPONSE priority 500 {
     # Insert some test response headers
     HTTP::header insert Set-Cookie {SESSIONID=AAAAAAAA; domain=.domain.com; path=/path/1}
     HTTP::header insert Set-Cookie {keeper=don't delete; domain=.domain.com; path=/path/2}
@@ -12,7 +12,7 @@ when HTTP_RESPONSE {
     log local0. "\$set_cookie_header: $set_cookie_header"
 
     # Remove all SESSIONID cookies
-    while {[HTTP::cookie exists SESSIONID]}{
+    while {[HTTP::cookie exists SESSIONID]} {
       HTTP::cookie remove SESSIONID
     }
     log local0. "Set-Cookie values: [HTTP::header values Set-Cookie]"

@@ -1,14 +1,24 @@
-when HTTP_REQUEST {
-  if { [string tolower [HTTP::path]] starts_with "/xyz/" or [string tolower [HTTP::query]] contains "xy=9" } {
-    if { [HTTP::method] eq "GET" and [HTTP::header "Upgrade"] contains "WebSocket" } {
-      HTTP::disable
-      pool pool3
+# Create an iRule for an F5 BIG-IP load balancer that handles HTTP requests with high priority. The rule should first check if the request path starts with "/xyz/" or if the query string contains "xy=9", ignoring case. If these conditions are met, it should handle WebSocket connections specially and route all such requests to "pool3". For other requests, it should route to "pool2" if the URI starts with "/fr/app", and to "pool1" for all other cases. Ensure all string comparisons are case-insensitive and the rule uses efficient control structures. The iRule should stop processing after routing to pool3. Write the iRule following F5 BIG-IP best practices, making it concise and efficient.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the path starts with "/xyz/" (case-insensitive) or if the query contains "xy=9"
+    if { ([string tolower [HTTP::path]] starts_with "/xyz/") || ([string tolower [HTTP::query]] contains "xy=9") } {
+        # If the request is a GET method and contains a WebSocket upgrade header
+        if { [HTTP::method] eq "GET" && [HTTP::header "Upgrade"] contains "WebSocket" } {
+            # Disable HTTP processing for WebSocket connections
+            HTTP::disable
+        }
+        # Route the request to pool3
+        pool pool3
+        # Exit the iRule processing
+        return
     }
-    pool pool3
-  } else {
-      switch -glob [string tolower [HTTP::uri]] {
+
+    # If the above conditions are not met, use a switch statement to route based on the URI
+    switch -glob --[string tolower [HTTP::uri]] {
+        # If the URI starts with "/fr/app" (case-insensitive), route to pool2
         "/fr/app*" { pool pool2 }
-        default { pool pool1 }
-      }
-  }
+        # For all other URIs, route to pool1
+        default    { pool pool1 }
+    }
 }

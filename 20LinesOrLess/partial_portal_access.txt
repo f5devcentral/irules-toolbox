@@ -1,10 +1,30 @@
-when HTTP_REQUEST {
-  if { !([matchclass [IP::client_addr] equals $::InternalIPs])} {
-    if {[scan [URI::decode [string tolower [HTTP::uri]]] "/default.aspx?tabid=%d" tabid] == 1 } {
-      if { [matchclass $tabid equals $::intranet_pages] } {
-        drop
-        log local0. "Dropped request from IP:  [IP::client_addr]"
-      }
+# Create an F5 BIG-IP iRule that controls access to intranet pages. The rule should allow internal IP addresses to access all pages. For external IP addresses, it should check if they're trying to access specific intranet pages by examining the URL. If an external IP tries to access a protected intranet page, the request should be dropped and logged. Otherwise, allow the request to proceed.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the client's IP address is in the InternalIPs class
+    if { ([class match -- [IP::client_addr] equals /Common/InternalIPs]) } {
+        # If it's an internal IP, allow the request to proceed normally
+        return
     }
-  }
+
+    # Decode the URI, convert to lowercase, and try to extract the tabid parameter
+    if {[scan [string tolower [HTTP::uri -normalized]] "/default.aspx?tabid=%d" tabid] != 1 } {
+        # If the URI doesn't match the expected format, allow the request to proceed
+        return
+    }
+
+    # Check if the extracted tabid is in the intranet_pages class
+    if { ![class match -- ${tabid} equals /Common/intranet_pages] } {
+        # If the tabid is not in the intranet_pages class, allow the request to proceed
+        return
+    }
+
+    # If we've reached this point, it means:
+    # 1. The request is from an external IP
+    # 2. The URI matches the format for accessing an intranet page
+    # 3. The requested page (tabid) is in the intranet_pages class
+    # Therefore, we drop the request to prevent external access to intranet pages
+    drop
+    # Log the dropped request with the client's IP address
+    log local0. "Dropped request from IP:  [IP::client_addr]"
 }

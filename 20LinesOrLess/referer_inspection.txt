@@ -1,16 +1,26 @@
-when HTTP_REQUEST {
-  switch -glob [string tolower [URI::host [HTTP::header "Referer"]]] {
-    "www.mywebsite.com"
-    "www.contentwebsite.com" {
-      # Allow Request to go through...
+# Create an F5 BIG-IP iRule that implements referrer-based access control for your website content. The rule should check the Referer header of incoming HTTP requests and handle them differently based on the source. Allow requests from specific approved websites to proceed normally. For requests with empty Referer headers, return an empty 200 OK response and log the client's IP address. For requests from any other referrers, redirect the client back to the site they came from and log both the blocked referrer and client IP address.
+
+when HTTP_REQUEST priority 500 {
+    # Extract the hostname from the Referer header and convert to lowercase for case-insensitive matching
+    switch -glob -- [string tolower [URI::host [HTTP::header "Referer"]]] {
+        "www.mywebsite.com" -
+        "www.contentwebsite.com" {
+            # Allow requests from approved referrers to proceed normally
+            # No action needed here as the request will continue through the normal flow
+        }
+        "" {
+            # Handle requests with empty/blank Referer headers
+            # Return an empty 200 OK response to prevent further processing
+            HTTP::respond 200 content ""
+            # Log the event with the client's IP address
+            log local0 "Blank Referer from IP: [IP::client_addr]"
+        }
+        default {
+            # Handle requests from any other referrers (not in the approved list)
+            # Redirect the client back to the site they came from
+            HTTP::redirect [HTTP::header "Referer"]
+            # Log the blocked referrer and the client's IP address
+            log local0 "Blocked Referer: [HTTP::header value Referer] from IP: [IP::client_addr]"
+        }
     }
-    "" {
-      HTTP::respond 200 content ""
-      log local0 "Blank Referer from IP: [IP::client_addr]"
-    }
-    default {
-      HTTP::redirect [HTTP::header "Referer"]
-      log local0 "Blocked Referer: [HTTP::header value Referer] from IP: [IP::client_addr]"
-    }
-  }
 }

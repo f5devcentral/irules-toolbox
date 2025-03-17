@@ -1,8 +1,25 @@
-when CLIENTSSL_DATA {
-  if { [SSL::payload] contains "the query string" } {
-      log local0. "I got the query!"
-      SSL::release
-  } else {
-      SSL::collect
-  }
+# Create an F5 BIG-IP iRule that inspects decrypted SSL traffic for a specific pattern. The rule should collect SSL payload data, check if it contains the text "the query string", log a message when the pattern is found, release the SSL buffer to allow normal processing, and continue collecting data if the pattern isn't found.
+
+when CLIENTSSL_DATA priority 500 {
+    # This event triggers when SSL encrypted data is received from the client
+
+    # Check if the current SSL payload buffer contains the specific text "the query string"
+    # This allows for pattern matching within the encrypted data after it's decrypted by F5
+    if { [SSL::payload] contains "the query string" } {
+        # Log a message to the local0 facility when the pattern is found
+        log local0. "I got the query!"
+        
+        # Release the SSL payload buffer to allow normal processing
+        # This stops the collection mode and lets the connection proceed normally
+        SSL::release
+        
+        # Exit the current event handler
+        # No further processing is needed for this SSL data chunk
+        return
+    }
+
+    # If the pattern wasn't found, continue collecting more SSL data
+    # This allows inspection of larger payloads that might span multiple packets
+    # The next chunk of SSL data will trigger this event again
+    SSL::collect
 }

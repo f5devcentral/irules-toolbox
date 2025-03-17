@@ -1,13 +1,12 @@
-priority 1
-when CLIENT_ACCEPTED {
-  if { [class match [IP::client_addr] equals allow_list] } {
-    log local0. "client: [IP::client_addr] found in allow_list directed to http_test_pool"
-    pool http_test_pool
-    event disable all
-  }  elseif { [class match [IP::client_addr] equals deny_list] } {
-      log local0. " client: [IP::client_addr] found in deny_list directed to http_test_pool_2"
-      pool http_test_pool_2
-      # or discard
-      event disable all
-  }
+when CLIENT_ACCEPTED priority 1 {
+    if { [class match -- [IP::client_addr] equals allow_list] } {
+        log local0. "client: [IP::client_addr] found in allow_list directed to http_test_pool"
+        pool http_test_pool
+        event disable all
+    }  elseif { [class match -- [IP::client_addr] equals deny_list] } {
+        log local0. " client: [IP::client_addr] found in deny_list directed to http_test_pool_2"
+        pool http_test_pool_2
+        # or discard
+        event disable all
+    }
 }

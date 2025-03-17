@@ -1,14 +1,25 @@
-when SERVER_DATA {
-  set srvAge [IP::stats age]
-  set srvBytes [IP::stats bytes in]
-  # change 10000ms/10s to your desired time
-  if {$srvAge > 10000 } {
-    # change the recieved bytes if needed
-    if {$srvBytes > 3000000 } {
-      # makesure you create the rate class
-        rateclass bandHog
-        #log local0. "Bandwidth Hog: [IP::client_addr] server bytes $srvBytes"
+# Create an F5 BIG-IP iRule that identifies and rate-limits high-bandwidth connections. The rule should run when the server sends data. It should check the age of the connection and the amount of data transferred from the server. If a connection has been active for more than 10 seconds and has transferred more than 3MB of data, apply a rate class called "bandHog" and log the client as a bandwidth hog. The rule should also log connection details for all requests, including client IP, port, connection age, and bytes transferred.
+
+when SERVER_DATA priority 500 {
+    # Get the age of the current connection in milliseconds
+    set srvAge [IP::stats age]
+    # Get the number of bytes received from the server
+    set srvBytes [IP::stats bytes in]
+
+    # Check if the connection has been active for more than 10 seconds
+    # Note: You can adjust this value (10000ms) as needed
+    if { $srvAge > 10000 } {
+        # Check if the server has sent more than 3MB of data
+        # Note: You can adjust this threshold (3000000 bytes) as needed
+        if { $srvBytes > 3000000 } {
+            # Apply rate limiting to this connection
+            # Note: Make sure to create the "bandHog" rate class beforehand
+            rateclass bandHog
+            # Log a message identifying this client as a bandwidth hog
+            log local0. "Bandwidth Hog: [IP::client_addr] server bytes $srvBytes"
+        }
     }
-  }
-  #log local0. " [IP::client_addr]:[TCP::client_port] server age: $srvAge server bytes: $srvBytes"
+
+    # Log connection details for all requests
+    log local0. " [IP::client_addr]:[TCP::client_port] server age: $srvAge server bytes: $srvBytes"
 }

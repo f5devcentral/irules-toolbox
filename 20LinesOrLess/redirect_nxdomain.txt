@@ -1,6 +1,19 @@
-when DNS_RESPONSE {
-  if { [DNS::header rcode] eq "NXDOMAIN" } {
+# Create an F5 BIG-IP iRule that prevents upstream LDNS servers from caching NXDOMAIN responses.
+
+when DNS_RESPONSE priority 500 {
+    # Check if the DNS response code is NOT "NXDOMAIN" (Non-existent Domain)
+    if { [DNS::header rcode] ne "NXDOMAIN" } {
+        # If it's not NXDOMAIN, exit the rule without making any changes
+        return
+    }
+
+    # If we reach here, the response is NXDOMAIN
+    # Change the response code from NXDOMAIN to NOERROR (indicating success)
     DNS::header rcode NOERROR
+    
+    # Insert a DNS answer record for the requested domain
+    # This redirects all non-existent domains to IP address 1.1.1.1
+    # Format: "domain TTL class type IP_address"
+    # TTL (Time To Live) is set to 60 seconds
     DNS::answer insert "[DNS::question name]. 60 [DNS::question class] [DNS::question type] 1.1.1.1"
-  }
 }

@@ -1,10 +1,19 @@
-when HTTP_REQUEST {
-  set querystring URI::query
- }
+# Create an F5 iRule that modifies file download behavior based on URL parameters. The iRule should capture the query string during the HTTP request, check for an "attachment=1" parameter, and modify the Content-Disposition response header by replacing "inline" with "attachment" when present, forcing browsers to download files instead of displaying them inline.
 
- when HTTP_RESPONSE {
-  if { $querystring contains "attachment=1" } {
-   HTTP::header replace Content-Disposition [string map -nocase "inline attachment" [HTTP::header Content-Disposition]]
-  }
+when HTTP_REQUEST priority 500 {
+    # Capture the query string portion of the URI
+    # This stores all parameters after the ? in the URL for later use
+    set querystring [URI::query]
+}
 
- }
+when HTTP_RESPONSE priority 500 {
+    # Check if the previously stored query string contains "attachment=1" parameter
+    # This parameter indicates the client wants the content as an attachment
+    if { "$querystring" contains "attachment=1" } {
+        # Modify the Content-Disposition header in the response
+        # Replace any occurrence of "inline" with "attachment"
+        # This forces the browser to download the content rather than display it inline
+        # The -nocase flag makes the replacement case-insensitive
+        HTTP::header replace Content-Disposition [string map -nocase "inline attachment" [HTTP::header Content-Disposition]]
+    }
+}

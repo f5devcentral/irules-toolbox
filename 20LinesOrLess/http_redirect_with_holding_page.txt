@@ -1,4 +1,4 @@
-when HTTP_REQUEST {
+when HTTP_REQUEST priority 500 {
   if { [TCP::local_port] eq "80"  } {
     persist source_addr 1800
     HTTP::fallback http://support.com/
@@ -12,8 +12,7 @@ when HTTP_REQUEST {
       HTTP::header insert "BPL-SSL" "On"
       pool Web_Farm_Front
   } else {
-      set srvr [findclass [TCP::local_port] $::Individual_Servers " "]
-      if { $srvr ne "" } {
+      if { [set srvr [class match -value -- [TCP::local_port] equals /Common/Individual_Servers]] ne "" } {
         node $srvr 80
       } else {
           HTTP::redirect "http://www.domain.net/"

@@ -1,15 +1,25 @@
-when RULE_INIT {
-  set static::whichone 0
+# Create an F5 BIG-IP iRule that implements round-robin redirection between two servers. The rule should alternate between redirecting requests to Server1 and Server2.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Initialize a counter variable to track which server to redirect to
+    # Starting with 0 means the first request will go to Server1
+    set whichone 0
 }
-when HTTP_REQUEST {
-  switch $static::whichone {
-    0 {
-      HTTP::redirect "http://Server1/blah"
-      set static::whichone 1
+
+when HTTP_REQUEST priority 500 {
+    # Use a switch statement to alternate between servers
+    switch -- $whichone {
+        0 {
+            # When counter is 0, redirect to Server1
+            HTTP::redirect "http://Server1/blah"
+            # Update counter for the next request
+            set whichone 1
+        }
+        default {
+            # For any other value (which will be 1), redirect to Server2
+            HTTP::redirect "http://Server2/blah"
+            # Reset counter back to 0 for the next request
+            set whichone 0
+        }
     }
-    default {
-      HTTP::redirect "http://Server2/blah"
-      set static::whichone 0
-    }
-  }
 }

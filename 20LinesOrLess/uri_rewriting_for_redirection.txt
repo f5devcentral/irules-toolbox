@@ -1,10 +1,25 @@
-when HTTP_REQUEST {
-  set uri_token [string range [HTTP::path] [expr {[string last / [HTTP::path]] + 1}] end]
+# Create an F5 iRule that handles 404 errors by redirecting to alternative URLs. The iRule should extract the last segment of the requested URL path, check if a matching entry exists in a data class when a 404 response occurs, and redirect the client to the corresponding URL found in the data class.
+
+when HTTP_REQUEST priority 500 {
+    # Extract the last segment of the URL path (everything after the last slash)
+    # Example: For "/path/to/resource.html", this extracts "resource.html"
+    # This token will be used later for redirection lookup if a 404 occurs
+    set uri_token [string range [HTTP::path] [expr {[string last / [HTTP::path]] + 1}] end]
 }
 
-when HTTP_RESPONSE {
-  if {[HTTP::status] == 404} {
-    set red_uri [class match -value $uri_token equals class_name]
+when HTTP_RESPONSE priority 500 {
+    # Only process 404 (Not Found) responses
+    # Skip this logic for all other HTTP status codes
+    if {[HTTP::status] != 404} {
+        return
+    }
+
+    # Look up the extracted token in a data-group named "/Common/class_name"
+    # The data-group contains mappings from tokens to redirect URLs
+    # If found, the matching redirect URL is stored in $red_uri
+    set red_uri [class match -value -- $uri_token equals /Common/class_name]
+    
+    # Redirect the client to the URL found in the data class
+    # This turns a 404 response into a redirect to a valid resource
     HTTP::redirect $red_uri
-  }
 }

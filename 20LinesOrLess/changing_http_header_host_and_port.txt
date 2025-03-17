@@ -1,15 +1,31 @@
-when HTTP_REQUEST {
-    # Check if host value has a colon
-    if {[HTTP::host] contains ":"}{
-       # Replace host header value with everything before the colon
-       HTTP::header replace Host "[getfield [HTTP::host] : 1]"
-    log local0. "[IP::client_addr]:[TCP::client_port]: Replace original host [HTTP::host] with [getfield [HTTP::host] : 1]"
+# Create an F5 iRule that sanitizes port numbers from HTTP traffic. The iRule should remove port numbers from Host headers in incoming requests by extracting just the hostname portion, and modify Location headers in redirect responses by removing specific port numbers (like 55555) from URLs, ensuring internal port information isn't exposed to clients.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the Host header contains a port number (indicated by a colon)
+    # This identifies requests where the Host header is in format "hostname:port"
+    if { [HTTP::host] contains ":" } {
+        # Extract only the hostname portion (everything before the colon)
+        # getfield splits the string at the colon and returns the first part
+        set http_host [getfield [HTTP::host] : 1]
+        
+        # Replace the original Host header with just the hostname
+        # Note: There appears to be a variable name mismatch - $http_host vs $host
+        # This might be a bug in the original code
+        HTTP::header replace Host "$host"
+        
+        # Log the host header modification for troubleshooting
+        # Records the client IP, port, original host value, and new host value
+        log local0. "[IP::client_addr]:[TCP::client_port]: Replace original host [HTTP::host] with $host"
     }
 }
-when HTTP_RESPONSE {
-   # Check if response is a redirect
-   if {[HTTP::is_redirect]}{
-      # Replace :55555/ with / in the Location header
-      HTTP::header replace Location [string map {:55555/ /} [HTTP::header value Location]]
-   }
+
+when HTTP_RESPONSE priority 500 {
+    # Check if the response is a redirect (3xx status code with Location header)
+    # Common for 301, 302, 303, 307, and 308 responses
+    if { [HTTP::is_redirect] } {
+        # Modify the Location header in redirect responses
+        # Removes port 55555 from any URLs in the Location header
+        # This ensures redirects don't expose internal port numbers to clients
+        HTTP::header replace Location [string map {:55555/ /} [HTTP::header value Location]]
+    }
 }

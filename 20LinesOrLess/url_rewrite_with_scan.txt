@@ -1,19 +1,21 @@
-when HTTP_REQUEST {
-   # Check the requested path (URI minus query string)
-   switch -glob [string tolower [HTTP::path]] {
-      "*.gif" -
-      "*.js" -
-      "*.css" -
-      "*.jpg" -
-      "*.bmp" {
-         # Read in everything after the first / that is not a /.
-     # Save that to $session_id and everything else to $uri_to_save
-     # scan will return the number of matches
-         if {[scan [HTTP::uri] {/%[^/]%s} session_id uri_to_save] == 2}{
-            # Rewrite the URI without the session ID
-            #log local0. "$session_id"
-            HTTP::uri $uri_to_save
-         }
-      }
-   }
+# Create an F5 iRule that removes session IDs from static resource URLs. The iRule should check if the requested path is for a static resource (gif, js, css, jpg, or bmp file), extract the session ID and the rest of the URI, and then rewrite the URI to remove the session ID portion, preserving only the actual resource path.
+
+when HTTP_REQUEST priority 500 {
+    # Check the requested path (URI minus query string)
+    switch -glob -- [string tolower [HTTP::path]] {
+        "*.gif" -
+        "*.js" -
+        "*.css" -
+        "*.jpg" -
+        "*.bmp" {
+            # Read in everything after the first / that is not a /.
+            # Save that to $session_id and everything else to $uri_to_save
+            # scan will return the number of matches
+            if { [scan [HTTP::uri] {/%[^/]%s} session_id uri_to_save] == 2 } {
+                # Rewrite the URI without the session ID
+                #log local0. "$session_id"
+                HTTP::uri $uri_to_save
+            }
+        }
+    }
 }

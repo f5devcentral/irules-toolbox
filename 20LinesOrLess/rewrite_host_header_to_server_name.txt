@@ -33,30 +33,30 @@
 #
 # 2. Each pool member must be configured and any time the pool membership changes, this data group must be updated.
 #
-when HTTP_REQUEST_SEND {
+when HTTP_REQUEST_SEND priority 500 {
 
-   # Log debug messages to /var/log/ltm? 1=yes, 0=no.
-   set host_debug 1
+    # Log debug messages to /var/log/ltm? 1=yes, 0=no.
+    set host_debug 1
 
-   # Need to force the host header replacement and HTTP:: commands into the clientside context
-   #  as the HTTP_REQUEST_SEND event is in the serverside context
-   clientside {
+    # Need to force the host header replacement and HTTP:: commands into the clientside context
+    #  as the HTTP_REQUEST_SEND event is in the serverside context
+    clientside {
 
-      if {$host_debug}{log local0. "[IP::client_addr]:[TCP::client_port]: [HTTP::method] request to [HTTP::host][HTTP::uri]"}
+        if {$host_debug} {log local0. "[IP::client_addr]:[TCP::client_port]: [HTTP::method] request to [HTTP::host][HTTP::uri]"}
 
-      # Look up the selected server IP in the datagroup to get the host header value
-      set host_header_value [class match -value [IP::server_addr] equals ip_to_host_dg]
+        # Look up the selected server IP in the datagroup to get the host header value
+        set host_header_value [class match -value -- [IP::server_addr] equals ip_to_host_dg]
 
-      if {$host_debug}{log local0. "[IP::client_addr]:[TCP::client_port]: Looked up [IP::server_addr], found: $host_header_value."}
+        if {$host_debug} {log local0. "[IP::client_addr]:[TCP::client_port]: Looked up [IP::server_addr], found: $host_header_value."}
 
-      # Check if the lookup returned a value
-      if {$host_header_value ne ""}{
+        # Check if the lookup returned a value
+        if {$host_header_value ne ""} {
 
-         # Replace the host header value
-         HTTP::header replace Host $host_header_value
-         if {$host_debug}{log local0. "[IP::client_addr]:[TCP::client_port]: Replaced Host header with $host_header_value."}
-      }
-   }
+            # Replace the host header value
+            HTTP::header replace Host $host_header_value
+            if {$host_debug} {log local0. "[IP::client_addr]:[TCP::client_port]: Replaced Host header with $host_header_value."}
+        }
+    }
 }
 
 # v9.x
@@ -87,28 +87,28 @@ when HTTP_REQUEST_SEND {
 #
 # 2. Each pool member must be configured and any time the pool membership changes, this datagroup must be updated.
 #
-when HTTP_REQUEST_SEND {
+when HTTP_REQUEST_SEND priority 500 {
 
-   # Log debug messages to /var/log/ltm? 1=yes, 0=no.
-   set host_debug 1
+    # Log debug messages to /var/log/ltm? 1=yes, 0=no.
+    set host_debug 1
 
-   # Need to force the host header replacement and HTTP:: commands into the clientside context
-   #  as the HTTP_REQUEST_SEND event is in the serverside context
-   clientside {
+    # Need to force the host header replacement and HTTP:: commands into the clientside context
+    #  as the HTTP_REQUEST_SEND event is in the serverside context
+    clientside {
 
-      if {$host_debug}{log local0. "[IP::client_addr]:[TCP::client_port]: New [HTTP::method] request to [HTTP::host][HTTP::uri]"}
+        if {$host_debug} {log local0. "[IP::client_addr]:[TCP::client_port]: New [HTTP::method] request to [HTTP::host][HTTP::uri]"}
 
-      # Look up the selected server IP in the datagroup to get the host header value
-      set host_header_value [findclass [LB::server addr] ip_to_host_dg " "]
+        # Look up the selected server IP in the datagroup to get the host header value
+        set host_header_value [findclass [LB::server addr] ip_to_host_dg " "]
 
-      if {$host_debug}{log local0. "[IP::client_addr]:[TCP::client_port]: Looked up [LB::server addr], found: $host_header_value."}
+        if {$host_debug} {log local0. "[IP::client_addr]:[TCP::client_port]: Looked up [LB::server addr], found: $host_header_value."}
 
-      # Check if the lookup returned a value
-      if {$host_header_value ne ""}{
+        # Check if the lookup returned a value
+        if {$host_header_value ne ""} {
 
-         # Replace the host header value
-         HTTP::header replace Host $host_header_value
-         if {$host_debug}{log local0. "[IP::client_addr]:[TCP::client_port]: Replaced Host header with $host_header_value."}
-      }
-   }
+            # Replace the host header value
+            HTTP::header replace Host $host_header_value
+            if {$host_debug} {log local0. "[IP::client_addr]:[TCP::client_port]: Replaced Host header with $host_header_value."}
+        }
+    }
 }

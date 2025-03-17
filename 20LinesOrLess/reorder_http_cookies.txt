@@ -1,8 +1,22 @@
-when HTTP_REQUEST {
-  if { [HTTP::cookie exists "cookie-name"] } {
+# Create an F5 BIG-IP iRule that renames a specific cookie and moves it to the end of the Cookie header.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the cookie named "cookie-name" exists in the request
+    # If it doesn't exist, exit the rule without making any changes
+    if { ![HTTP::cookie exists "cookie-name"] } {
+        return
+    }
+
+    # Store the value of "cookie-name" in a variable
     set cookie_s [HTTP::cookie "cookie-name"]
+    
+    # Remove the original "cookie-name" cookie from the request
     HTTP::cookie remove "cookie-name"
+    
+    # Get the current value of the entire Cookie header after removal
     set cookie_a [HTTP::header cookie]
+    
+    # Replace the Cookie header with the existing cookies plus the original cookie value
+    # but now renamed to "WLSID" and placed at the end of the cookie string
     HTTP::header replace "cookie" "$cookie_a; WLSID=$cookie_s"
-  }
 }

@@ -1,17 +1,21 @@
-when RULE_INIT {
+when CLIENT_ACCEPTED priority 500 {
   array set connections { }
-}
-when CLIENT_ACCEPTED {
-  if { [info exists ::connections([IP::client_addr])] } {
-    if { [incr ::connections([IP::client_addr])] > 1000 } {
-      reject
-    }
-  } else {
-    set ::connections([IP::client_addr]) 1
+
+  if { ![info exists connections([IP::client_addr])] } {
+    set connections([IP::client_addr]) 1
+    return
   }
+
+  if { [expr {connections([IP::client_addr]) + 1}] > 1000 } {
+    reject
+    event disable all
+    return
+  }
+
+  incr connections([IP::client_addr])
 }
-when CLIENT_CLOSED {
-  if { [incr ::connections([IP::client_addr]) -1] } {
-    unset ::connections([IP::client_addr])
+when CLIENT_CLOSED priority 500 {
+  if { [incr connections([IP::client_addr]) -1] <= 0 } {
+    unset -nocomplain -- connections([IP::client_addr])
   }
 }

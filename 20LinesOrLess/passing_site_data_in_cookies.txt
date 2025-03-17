@@ -1,11 +1,19 @@
-when HTTP_REQUEST {
-  if { [URI::query [HTTP::uri] data] ne "" } {
-    set data [b64decode [URI::decode [URI::query [HTTP::uri] data]]]
-  }
+# Create an F5 BIG-IP iRule that takes a 'data' parameter from the URL, decodes it, and then passes it back as a cookie in the response. The rule should handle both the incoming request and outgoing response, with high priority for both. Make sure to clean up any temporary variables after use.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the URL query string contains a parameter named 'data'
+    if { [URI::query [HTTP::uri] data] ne "" } {
+        # If 'data' parameter exists, decode it from URL encoding and then from Base64
+        set data [b64decode [URI::decode [URI::query [HTTP::uri] data]]]
+    }
 }
-when HTTP_RESPONSE {
-  if { [info exists data] } {
-    HTTP::cookie insert name "data-from-other-site" value $data
-    unset data
-  }
+
+when HTTP_RESPONSE priority 500 {
+    # Check if the 'data' variable was set in the request handling section
+    if { [info exists data] } {
+        # If 'data' exists, insert it into a cookie named 'data-from-other-site'
+        HTTP::cookie insert name "data-from-other-site" value $data
+        # Clean up by unsetting the 'data' variable
+        unset -nocomplain -- data
+    }
 }

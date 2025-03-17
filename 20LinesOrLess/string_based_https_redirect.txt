@@ -1,13 +1,18 @@
-when HTTP_REQUEST {
-  switch -glob [string tolower [HTTP::uri]] {
-    "*alumni/giving/gift/" -
-    "*alumni/giving/pledge/" -
-    "*alumni/directory/search.aspx" -
-    "*alumni/directory/update.aspx" {
-        # don't do anything...
+# Create an F5 iRule that redirects HTTP requests to HTTPS except for specific alumni paths. The iRule should convert the URI to lowercase and allow HTTP access for any paths containing "*alumni/giving/gift/", "*alumni/giving/pledge/", "*alumni/directory/search.aspx", or "*alumni/directory/update.aspx" using glob pattern matching. All other paths should receive a 301 redirect to the same hostname and URI but with HTTPS protocol.
+
+when HTTP_REQUEST priority 500 {
+    # Convert the URI to lowercase and check it against specific patterns
+    switch -glob -- [string tolower [HTTP::uri]] {
+        "*alumni/giving/gift/" -
+        "*alumni/giving/pledge/" -
+        "*alumni/directory/search.aspx" -
+        "*alumni/directory/update.aspx" {
+            # Don't redirect these paths - allow them to continue as HTTP
+        }
+        default {
+            # Redirect to HTTPS while preserving the hostname and URI
+            # getfield extracts the hostname without the port number
+            HTTP::respond 301 Location "https://[getfield [HTTP::host] : 1][HTTP::uri]"
+        }
     }
-    default {
-      HTTP::respond 301 Location "https://[getfield [HTTP::host] : 1][HTTP::uri]"
-    }
-  }
 }

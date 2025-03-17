@@ -1,16 +1,14 @@
 ### NOTE ###
 # Look into the after command to obviate the need for this iRule
 ### END NOTE ###
-
-when RULE_INIT {
+when CLIENT_ACCEPTED priority 500 {
   # Initialize a variable to track the last time a log message was made
-  set static::last_log_timestamp [clock seconds]
+  set LAST_LOG_TIMESTAMP [clock seconds]
   # Shortest interval (in seconds) to log a message
-  set static::min_log_interval 60
-}
-when CLIENT_ACCEPTED {
+  set MIN_LOG_INTERVAL 60
+
   # Check if there are two or less active members in the default pool
-  if {[active_members [LB::server pool]] < 3 and [expr {[clock seconds] - $static::last_log_timestamp}] > $static::min_log_interval}{
+  if { ([active_members [LB::server pool]]) < 3 and ([expr {[clock seconds] - $LAST_LOG_TIMESTAMP}] > $MIN_LOG_INTERVAL) } {
     log local0. "[virtual name], [LB::server pool]: [active_members [LB::server pool]] members available!"
   }
 }

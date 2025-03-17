@@ -1,10 +1,18 @@
-when CLIENT_ACCEPTED {
-  if { [class match [IP::client_addr] equals "sslv3_allowed"] } {
-    SSL::profile sslv3_enabled
-  } else {
-      SSL::profile sslv3_disabled
-  }
+# Create an F5 BIG-IP iRule that mitigates the POODLE vulnerability. It should check if the client's IP is in an allowed list, apply the appropriate SSL profile, and force SSL renegotiation to ensure the correct profile is used.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Check if the client's IP address is in the "sslv3_allowed" class
+    if { [class match -- [IP::client_addr] equals "sslv3_allowed"] } {
+        # If the client is allowed to use SSLv3, set the SSL profile to allow it
+        SSL::profile sslv3_enabled
+        # Exit the rule early for allowed clients
+        return
+    }
+    # For all other clients, use an SSL profile that disables SSLv3
+    SSL::profile sslv3_disabled
 }
-when HTTP_REQUEST {
-  SSL::renegotiate
+
+when HTTP_REQUEST priority 500 {
+    # Force an SSL renegotiation to apply the correct SSL profile
+    SSL::renegotiate
 }

@@ -1,7 +1,16 @@
-when HTTP_REQUEST {
-  if { [class match [string tolower [HTTP::uri]] contains subsite] and \
-       !([[string tolower [HTTP::uri]] contains "/admin/upload") and \
-       ![class match [IP::addr [IP::client_addr]] eq allow] } {
-    HTTP::respond 200 content "Forbidden Redirect From Remote Server\Acess is forbidden"
-  }
+# Create an F5 iRule that blocks access to specific URLs defined in a data group while allowing exceptions. The iRule should check if the URI contains any string from a "subsite" data group, exclude requests to the admin upload path, verify the client IP is not in an allowed IP list, and return a custom 200 response with a "Forbidden" message when access should be blocked.
+
+when HTTP_REQUEST priority 500 {
+    # Check three conditions to determine if access should be blocked:
+    # 1. Check if the normalized, lowercase URI contains any string in the "subsite" data group
+    # 2. Ensure the URI does not contain the admin upload path (which is allowed)
+    # 3. Verify the client IP is not in the "allow" data group of permitted IPs
+    if { ([class match -- [string tolower [HTTP::uri -normalized]] contains /Common/subsite])
+     && !([string tolower [HTTP::uri]] contains "/admin/upload")
+     && ![class match -- [IP::addr [IP::client_addr]] eq allow] } {
+            # If all conditions are met (URI is restricted, not the upload path, and IP not allowed)
+            # Return a 200 response with a custom error message
+            # The "noserver" option prevents sending the F5 server header
+            HTTP::respond 200 content "Forbidden Redirect From Remote Server\Acess is forbidden" noserver
+    }
 }

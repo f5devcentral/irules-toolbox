@@ -1,20 +1,29 @@
-when HTTP_REQUEST {
-  if {not ([string tolower [HTTP::host]] eq "www.domain.com")}{
-    HTTP::redirect http://www.domain.com[HTTP::uri]
-  } else {
-    switch -glob [HTTP::path] {
-      "/us*" {
-        pool US_pool
-        log local0. "[IP::client_addr]:[TCP::client_port]: using pool US_pool"
-      }
-      "/au*" {
-        pool AU_pool
-        log local0. "[IP::client_addr]:[TCP::client_port]: using pool AU_pool"
-      }
-      default {
-        pool default_pool
-        log local0. "[IP::client_addr]:[TCP::client_port]: using default pool"
-      }
+# Create an F5 iRule that redirects non-www traffic to www.domain.com and routes requests based on the URI path. The rule should send /us* requests to a US pool, /au* requests to an AU pool, and all others to a default pool. Include basic logging for each routing decision.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the request is not for www.domain.com (case-insensitive)
+    if { !([string tolower [HTTP::host]] eq "www.domain.com") } {
+        # Redirect to www.domain.com while preserving the original URI
+        HTTP::redirect http://www.domain.com[HTTP::uri]
+        return
     }
-  }
+
+    # For requests to www.domain.com, route based on the URI path
+    switch -- -glob [HTTP::path] {
+        "/us*" {
+            # Route requests starting with /us to the US pool
+            pool US_pool
+            log local0. "[IP::client_addr]:[TCP::client_port]: using pool US_pool"
+        }
+        "/au*" {
+            # Route requests starting with /au to the AU pool
+            pool AU_pool
+            log local0. "[IP::client_addr]:[TCP::client_port]: using pool AU_pool"
+        }
+        default {
+            # Route all other requests to the default pool
+            pool default_pool
+            log local0. "[IP::client_addr]:[TCP::client_port]: using default pool"
+        }
+    }
 }

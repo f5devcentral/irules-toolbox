@@ -1,12 +1,25 @@
-when CLIENT_ACCEPTED {
-  if {[IP::protocol] == 47 || [TCP::local_port] == 1723} {
-    # GRE used by MS PPTP server, TCP control channel
-    pool ms_pptp
-  } elseif {[IP::protocol] == 50 || [IP::protocol] == 51 || [UDP::local_port] == 500}  {
-    # AH and ESP used by IPSec, IKE used by IPSec
-    pool ipsec_pool
-  } elseif {[IP::protocol] == 115} {
-    pool l2tp_pool
-    # L2TP Protocol server
-  }
+# Create an F5 iRule that sorts different types of VPN traffic to appropriate pools. The iRule should identify and route Microsoft PPTP traffic (protocol 47 or TCP port 1723), IPSec traffic (protocols 50, 51, or UDP port 500), and L2TP traffic (protocol 115) to their respective dedicated pools, with any unmatched traffic falling through to the default pool.
+
+when CLIENT_ACCEPTED priority 500 {
+    # This event triggers as soon as a client connection is accepted
+    # The iRule sorts different types of VPN traffic to appropriate pools
+    
+    if {[IP::protocol] == 47 || [TCP::local_port] == 1723} {
+        # Route Microsoft PPTP VPN traffic to dedicated pool
+        # Protocol 47 is GRE (Generic Routing Encapsulation) used for PPTP data tunnel
+        # Port 1723 is the TCP control channel for PPTP connections
+        pool ms_pptp
+    } elseif {[IP::protocol] == 50 || [IP::protocol] == 51 || [UDP::local_port] == 500}  {
+        # Route IPSec VPN traffic to dedicated pool
+        # Protocol 50 is ESP (Encapsulating Security Payload) for encrypted IPSec data
+        # Protocol 51 is AH (Authentication Header) for IPSec authentication
+        # UDP port 500 is used by IKE (Internet Key Exchange) for IPSec key negotiation
+        pool ipsec_pool
+    } elseif {[IP::protocol] == 115} {
+        # Route L2TP VPN traffic to dedicated pool
+        # Protocol 115 is the L2TP (Layer 2 Tunneling Protocol)
+        pool l2tp_pool
+    }
+    # If traffic doesn't match any VPN protocol, it will fall through
+    # to the default pool configured on the virtual server
 }
