@@ -1,24 +1,54 @@
-when RULE_INIT {
-  set static::fqdn_pin1 "X3pGTSOuJeEVw989IJ/cEtXUEmy52zs1TZQrU06KUKg="
-  set static::fqdn_pin2 "MHJYVThihUrJcxW6wcqyOISTXIsInsdj3xK8QrZbHec="
-  set static::max_age 15552000
+# Create an F5 BIG-IP iRule that enforces web security best practices by redirecting all HTTP traffic to HTTPS and adding essential security headers to responses. The rule should implement HSTS, HPKP, XSS protection, frame options, content type options, and content security policy headers to protect against common web vulnerabilities and attacks.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Define the Base64-encoded SHA256 hash of the server's public key
+    # This is used for HTTP Public Key Pinning (HPKP) to prevent MITM attacks
+    set FQDN_PIN "X3pGTSOuJeEVw989IJ/cEtXUEmy52zs1TZQrU06KUKg="
+    
+    # Set the max age for security headers in seconds (365 days)
+    # This determines how long browsers should remember security settings
+    set MAX_AGE 31536000
 }
-when HTTP_REQUEST {
-  HTTP::respond 301 Location "https://[HTTP::host][HTTP::uri]"
+
+when HTTP_REQUEST priority 500 {
+    # Redirect all HTTP requests to HTTPS
+    # Forces secure connections by sending a 301 permanent redirect
+    # to the same host and URI but using HTTPS protocol
+    HTTP::respond 301 Location "https://[getfield [HTTP::host] : 1][HTTP::uri]"
 }
-when HTTP_RESPONSE {
-  #HSTS
-  HTTP::header insert Strict-Transport-Security "max-age=$static::max_age; includeSubDomains"
-  #HPKP
-  HTTP::header insert Public-Key-Pins "pin-sha256=\"$static::fqdn_pin1\" max-age=$static::max_age; includeSubDomains"
-  #X-XSS-Protection
-  HTTP::header insert X-XSS-Protection "1; mode=block"
-  #X-Frame-Options
-  HTTP::header insert X-Frame-Options "DENY"
-  #X-Content-Type-Options
-  HTTP::header insert X-Content-Type-Options "nosniff"
-  #CSP
-  HTTP::header insert Content-Security-Policy "default-src https://devcentral.f5.com/s:443"
-  #CSP for IE
-  HTTP::header insert X-Content-Security-Policy "default-src https://devcentral.f5.com/s:443"
+
+when HTTP_RESPONSE priority 500 {
+    # HTTP Strict Transport Security (HSTS)
+    # Instructs browsers to only use HTTPS for this domain in the future
+    # includeSubDomains extends the policy to all subdomains
+    # preload allows inclusion in browser HSTS preload lists
+    HTTP::header insert Strict-Transport-Security "max-age=$MAX_AGE; includeSubDomains; preload"
+    
+    # HTTP Public Key Pinning (HPKP)
+    # Specifies which public key(s) should be used by the browser
+    # Helps prevent man-in-the-middle attacks using fraudulent certificates
+    HTTP::header insert Public-Key-Pins "pin-sha256=\"$FQDN_PIN\" max-age=$MAX_AGE; includeSubDomains"
+    
+    # Cross-Site Scripting (XSS) Protection
+    # Enables browser's built-in XSS filter and blocks page if attack detected
+    HTTP::header insert X-XSS-Protection "1; mode=block"
+    
+    # X-Frame-Options
+    # Prevents the page from being displayed in frames/iframes
+    # DENY means the page cannot be displayed in a frame regardless of site
+    HTTP::header insert X-Frame-Options "DENY"
+    
+    # X-Content-Type-Options
+    # Prevents browsers from MIME-sniffing a response from declared content-type
+    # Helps prevent content-type confusion attacks
+    HTTP::header insert X-Content-Type-Options "nosniff"
+    
+    # Content Security Policy (CSP)
+    # Restricts sources of approved content that browser should load
+    # This policy only allows content from devcentral.f5.com over HTTPS
+    HTTP::header insert Content-Security-Policy "default-src https://devcentral.f5.com/s:443"
+    
+    # CSP for Internet Explorer
+    # Legacy header for older versions of IE that use different CSP implementation
+    HTTP::header insert X-Content-Security-Policy "default-src https://devcentral.f5.com/s:443"
 }

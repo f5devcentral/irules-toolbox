@@ -1,6 +1,6 @@
-when CLIENT_ACCEPTED {
-  set entry [class lookup [format %s [LINK::lasthop]] RouterA]
-  if { $entry ne "" } {
-    lasthop [lindex $entry 1] [lindex $entry 0]
+when CLIENT_ACCEPTED priority 500 {
+  if { [set entry [class lookup [format %s [LINK::lasthop]] RouterA]] eq "" } {
+    return
   }
+  lasthop [lindex $entry 1] [lindex $entry 0]
 }

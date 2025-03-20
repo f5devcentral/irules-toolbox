@@ -1,14 +1,15 @@
- when CLIENT_ACCEPTED {
-  # initialize TLS/SSL handshake count for this connection
-  set sslhandshakecount 0
+when CLIENT_ACCEPTED priority 500 {
+    # initialize TLS/SSL handshake count for this connection
+    set sslhandshakecount 0
 }
+
 # if you have lower priority iRules on the CLIENTSSL_HANDSHAKE event, you have to make sure, that they don't interfere with this iRule
 when CLIENTSSL_HANDSHAKE priority 100 {
-  # a handshake just occurred
-  incr sslhandshakecount
-  # is this the first handshake in this connection?
-  if { $sslhandshakecount != 1 } {
+    # Do nothing for the first handshake in this connection?
+    if { [incr sslhandshakecount] == 1 } {
+        return
+    }
+
     # log (rate limited) the event (to /var/log/tmm)
     log "\[VS [virtual] client [IP::client_addr]:[TCP::client_port]\]: TLS/SSL renegotiation occurred"
-  }
 }

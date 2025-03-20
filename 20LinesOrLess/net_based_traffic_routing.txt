@@ -1,9 +1,18 @@
-when CLIENT_ACCEPTED {
-   if { [class match [IP::remote_addr] equals my_networks_class] } {
-      log local0. "[IP::client_addr]:[TCP::client_port] matched"
-      pool Visionware_web28
-   } else {
-      log local0. "[IP::client_addr]:[TCP::client_port] didn't match"
-      pool Visionware_web27
-   }
+# Write an F5 BIG-IP iRule that routes traffic to different pools based on the client's IP address. Use a predefined network class for matching, log the connections, and set a default priority for the rule.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Check if the client's IP address matches a predefined class of networks
+    if { [class match -- [IP::remote_addr] equals /Common/my_networks_class] } {
+        # Log a message if the IP matches
+        log local0. "[IP::client_addr]:[TCP::client_port] matched"
+        # Route the connection to the Visionware_web28 pool
+        pool Visionware_web28
+        # End processing of this rule
+        return
+    }
+
+    # If the IP doesn't match, log a different message
+    log local0. "[IP::client_addr]:[TCP::client_port] didn't match"
+    # Route non-matching connections to the Visionware_web27 pool
+    pool Visionware_web27
 }

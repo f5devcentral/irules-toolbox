@@ -1,5 +1,17 @@
-when CLIENT_ACCEPTED {
-  if {[TCP::remote_port] == 80} {
-    virtual HTTP_virtual
-  }
+# Create an F5 iRule that redirects client connections based on the source port. The iRule should check if the client is connecting on port 80, and if so, internally redirect the connection to a specific virtual server named "HTTP_virtual" while maintaining transparency to the client.
+
+when CLIENT_ACCEPTED priority 500 {
+    # This event triggers as soon as a client connection is accepted by the virtual server
+    
+    # Check if the client is connecting on port 80 (standard HTTP port)
+    # This allows selective processing based on the client's source port
+    if {[TCP::remote_port] == 80} {
+        # If the client is connecting on port 80, redirect the connection internally
+        # to another virtual server named "HTTP_virtual"
+        # This is a VIP-to-VIP redirection that happens transparently to the client
+        # The client remains unaware that their traffic is being handled by a different virtual server
+        virtual HTTP_virtual
+    }
+    # If the client is connecting on any other port, the connection continues
+    # to be processed by the current virtual server (implicit else case)
 }

@@ -1,10 +1,28 @@
-when CLIENT_ACCEPTED {
- TCP::respond "220\r\n"
- TCP::collect
- }
-when CLIENT_DATA {
- set clientpayload [string tolower[TCP::payload]]
- if { $clientpayload contains "ehlo abcd-pc" } {
-  reject
- }
+# Create an F5 iRule that blocks SMTP connections based on the EHLO identifier. The iRule should respond with an SMTP greeting when a connection is established, collect the client's EHLO command, and reject connections that contain a specific EHLO identifier "ehlo abcd-pc" while allowing all other SMTP connections to proceed.
+
+when CLIENT_ACCEPTED priority 500 {
+    # When a client connection is first accepted, immediately respond with the SMTP greeting
+    # The "220" code indicates the server is ready to proceed with the SMTP session
+    # This is sent before we even examine the client's request
+    TCP::respond "220\r\n"
+    
+    # Begin collecting TCP payload data from the client
+    # This allows us to inspect the EHLO/HELO command in the next event
+    TCP::collect
+}
+
+when CLIENT_DATA priority 500 {
+    # This event triggers when client data is received
+    # Extract the payload and convert it to lowercase for case-insensitive matching
+    set clientpayload [string tolower[TCP::payload]]
+    
+    # Check if the payload contains a specific EHLO identifier "ehlo abcd-pc"
+    # This allows blocking connections from a specific client or malicious sender
+    if { $clientpayload contains "ehlo abcd-pc" } {
+        # If the blocked EHLO identifier is found, reject the connection
+        # This immediately terminates the TCP connection without further response
+        reject
+    }
+    
+    TCP::release
 }

@@ -1,14 +1,32 @@
-when RULE_INIT {
-  set static::search "http://web.site.com/fd/qalogon.php\\?groupid=aaa_library&using sql35\\?="
-  set static::replace "http://new.site.com:8080/share/page/site/directory/dashboard"
+# Create an F5 iRule that replaces a specific URL in HTTP responses with a new URL. The iRule should define search and replacement patterns when a client connects, remove the Accept-Encoding header from requests to prevent compression, and perform the replacement only on text-based content types in the response.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Define the search pattern - a URL that needs to be replaced in responses
+    # The pattern includes escaped characters for special regex characters
+    set SEARCH "http://web.site.com/fd/qalogon.php\?groupid=aaa_library&using sql35\?="
+    
+    # Define the replacement URL that will substitute the search pattern
+    set REPLACE "http://new.site.com:8080/share/page/site/directory/dashboard"
 }
-when HTTP_REQUEST {
-  STREAM::disable
-  HTTP::header remove "Accept-Encoding"
+
+when HTTP_REQUEST priority 500 {
+    # Disable stream processing for the request phase
+    STREAM::disable
+    
+    # Remove the Accept-Encoding header to prevent compressed responses
+    # This ensures content remains uncompressed so pattern replacement can work
+    HTTP::header remove "Accept-Encoding"
 }
-when HTTP_RESPONSE {
-  if {[HTTP::header value Content-Type] contains "text"}{
-    STREAM::expression @${static::search}@${static::replace}@
-    STREAM::enable
-  }
+
+when HTTP_RESPONSE priority 500 {
+    # Check if the response contains text-based content
+    # Only apply pattern replacement on text content types
+    if {[HTTP::header value Content-Type] contains "text"} {
+        # Configure the stream expression to replace the search pattern with the replacement
+        # Format: @pattern@replacement@ (using @ as delimiter)
+        STREAM::expression @${SEARCH}@${REPLACE}@
+        
+        # Enable stream processing to perform the pattern replacement
+        STREAM::enable
+    }
 }

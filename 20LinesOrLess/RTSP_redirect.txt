@@ -1,21 +1,49 @@
-when RTSP_REQUEST {
-if { [RTSP::method] contains "OPTIONS" } {
-  RTSP::respond 200 OK "Server: F5-redirector\r\nPublic: OPTIONS, SETUP\r\n\r\n"
-}
-if { [RTSP::method] contains "SETUP" or [RTSP::method] contains "DESCRIBE" } {
-  set client [IP::remote_addr]
-  regexp "rtsp://.*/(.*)$" [RTSP::uri] url file
-  # MD5 Hash & Persistence
-  set S ""
-  foreach N [active_members -list vod] {
-    if { [md5 $N$file] > $S } {
-      set S [md5 $N$file]
-      set W $N
+# Create an F5 BIG-IP iRule that handles RTSP streaming requests by implementing a consistent hashing algorithm. The rule should respond to OPTIONS requests with supported methods, process only SETUP and DESCRIBE methods, extract the requested filename, select a server from the "vod" pool using MD5 hashing for consistent file-to-server mapping, and redirect the client to the selected server with a 302 response.
+
+when RTSP_REQUEST priority 500 {
+    # Handle OPTIONS requests by returning a 200 OK response with supported methods
+    # This allows clients to discover what operations are supported
+    if { [RTSP::method] contains "OPTIONS" } {
+        RTSP::respond 200 OK "Server: F5-redirector\r\nPublic: OPTIONS, SETUP\r\n\r\n"
     }
-  }
-  set vod [lindex $W 0]
-  set newuri "rtsp://$vod:554/$file"
-  RTSP::respond 302 MOVED_TEMPORARILY "Server: F5-redirector\r\nLocation: $newuri\r\nConnection: close\r\n\r\n"
-  log "Client ($client) request to $file redirected to $newuri"
-}
+
+    # Only process SETUP and DESCRIBE methods, ignore all other RTSP methods
+    # These are the methods needed for stream initialization
+    if { !([RTSP::method] contains "SETUP") && !([RTSP::method] contains "DESCRIBE") } {
+        return
+    }
+
+    # Store the client's IP address for logging purposes
+    set client [IP::remote_addr]
+
+    # Extract the filename from the RTSP URI using regular expression
+    # This captures everything after the last slash in the URI
+    regexp -- "rtsp://.*/(.*)$" [RTSP::uri] url file
+
+    # Initialize variable for the MD5 hash comparison
+    # This will be used to consistently select a server based on the file requested
+    set S ""
+
+    # Loop through all active members in the "vod" pool
+    # For each server, calculate an MD5 hash of server+filename
+    foreach N [active_members -list vod] {
+        # Compare hashes to find the "largest" hash value
+        # This implements a deterministic selection algorithm based on the file
+        if { [md5 $N$file] > $S } {
+            set S [md5 $N$file]
+            set W $N
+        }
+    }
+
+    # Extract the selected server's address from the result
+    set vod [lindex $W 0]
+    # Construct the new RTSP URI pointing to the selected server
+    set newuri "rtsp://$vod:554/$file"
+
+    # Respond with a 302 redirect to the new URI
+    # This tells the client to reconnect to the selected server
+    RTSP::respond 302 MOVED_TEMPORARILY "Server: F5-redirector\r\nLocation: $newuri\r\nConnection: close\r\n\r\n"
+
+    # Log the redirection for troubleshooting and auditing
+    log "Client ($client) request to $file redirected to $newuri"
 }

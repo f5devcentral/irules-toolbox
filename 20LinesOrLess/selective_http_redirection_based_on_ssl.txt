@@ -1,21 +1,34 @@
-when CLIENT_ACCEPTED {
-        # Set a variable to track whether this is an HTTPS request
-        set https 0
+# Create an F5 BIG-IP iRule that manages HTTP redirections based on connection security and requested path. The rule should track whether connections are using HTTPS, redirect root path requests to a specific application URL, allow secure connections to proceed normally, and redirect all other HTTP requests to their HTTPS equivalents.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Initialize a flag to track whether this connection is using HTTPS/SSL
+    # Default is 0 (false) - assuming HTTP until proven otherwise
+    set https 0
 }
-when CLIENTSSL_HANDSHAKE {
-        # There was a client side SSL handshake, so update the variable
-        set https 1
+
+when CLIENTSSL_HANDSHAKE priority 500 {
+    # This event triggers when a client establishes an SSL/TLS connection
+    # Update the https flag to 1 (true) to indicate this is a secure connection
+    # This will be used later to determine if redirection is needed
+    set https 1
 }
-when HTTP_REQUEST {
-        # Check if referrer is eschool
-        if {!([HTTP::header "Referer"] starts_with "https://eschool.mysite.org/webapps/")}{
-            # If there is no URI redirect to portal
-             if {[HTTP::path] eq "/" }{
-                 HTTP::redirect "https://portal.mysite.org/eschool"
-             }
-}
-        if {not ($https)}{
-        # If it's not an HTTPS connection, send a redirect
-              HTTP::redirect https://[HTTP::host][HTTP::uri]
-        }
+
+when HTTP_REQUEST priority 500 {
+    # Handle root path requests by redirecting to a specific application URL
+    # This ensures users who visit the site root are sent to the main portal
+    if {[HTTP::path] eq "/" } {
+        HTTP::redirect "https://portal.mysite.org/eschool"
+        return
+    }
+
+    # If this is already an HTTPS connection, no need for SSL redirection
+    # Allow the request to continue processing normally
+    if {$https} {
+        return
+    }
+
+    # For all non-HTTPS requests that aren't to the root path,
+    # Redirect to the same host and URI but using HTTPS protocol
+    # getfield extracts the hostname without port number if present
+    HTTP::redirect https://[getfield [HTTP::host] : 1][HTTP::uri]
 }

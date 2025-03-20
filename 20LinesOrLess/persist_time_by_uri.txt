@@ -1,13 +1,17 @@
-when HTTP_REQUEST {
-    # Check requested path
-    switch -glob [HTTP::path] {
-       "/apps/aml/*" {
-          # Persist client for 10 hours
-          persist source_addr 36000
-       }
-       default {
-          # Persist client for 1 hour
-          persist source_addr 3600
-       }
+# Create an F5 BIG-IP iRule that sets different persistence times based on the requested URI path. The rule should run for every HTTP request with a priority of 500. For paths starting with "/apps/aml/", set a longer persistence time of 10 hours. For all other paths, set a shorter persistence time of 1 hour. Use source address persistence in both cases.
+
+when HTTP_REQUEST priority 500 {
+    # Use a switch statement to check the requested path
+    switch -glob -- [HTTP::path] {
+        # If the path starts with "/apps/aml/"
+        "/apps/aml/*" {
+            # Set source address persistence for this client for 10 hours (36000 seconds)
+            persist source_addr 36000
+        }
+        # For all other paths (default case)
+        default {
+            # Set source address persistence for this client for 1 hour (3600 seconds)
+            persist source_addr 3600
+        }
     }
 }

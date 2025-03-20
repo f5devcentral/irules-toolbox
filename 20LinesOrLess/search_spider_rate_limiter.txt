@@ -1,22 +1,45 @@
-when RULE_INIT {
-  array set ::active_crawlers { }
-  set ::min_interval 1
+# Create an F5 BIG-IP iRule that implements a rate limiter for search engine crawlers. The rule should identify crawlers by their User-Agent headers using a data group, track the timestamp of their last request, and enforce a minimum interval of one second between requests from the same crawler by rejecting requests that arrive too quickly.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Initialize an empty array to track active crawler user agents
+    # This will store timestamps for when each crawler is allowed to make its next request
+    array set ACTIVE_CRAWLERS { }
+    
+    # Set the minimum interval (in seconds) between requests from the same crawler
+    # This defines the rate limit - each crawler can only make 1 request per second
+    set MIN_INTERVAL 1
 }
 
-when HTTP_REQUEST {
-  set user_agent [string tolower [HTTP::header "User-Agent"]]
-  # Logic only relevant for crawler user agents
-  if { [matchclass $user_agent contains $::Crawlers] } {
-    # Throttle crawlers.
-    set curr_time [clock seconds]
-    if { [info exists ::active_crawlers($user_agent)] } {
-      if { [ $::active_crawlers($user_agent) < $curr_time ] } {
-        set ::active_crawlers($user_agent) [expr {$curr_time + $::min_interval}]
-      } else {
-        reject
-      }
-    } else {
-      set ::active_crawlers($user_agent) [expr {$curr_time + $::min_interval}]
+when HTTP_REQUEST priority 500 {
+    # Extract the User-Agent header and convert it to lowercase for consistent matching
+    # This ensures case-insensitive comparison with crawler signatures
+    set user_agent [string tolower [HTTP::header "User-Agent"]]
+    
+    # Only apply rate limiting to known crawler user agents
+    # Skip processing for regular user traffic
+    # /Common/Crawlers is a data group containing patterns that identify search engine bots
+    if { ! [class match -- $user_agent contains /Common/Crawlers] } {
+        return
     }
-  }
+
+    # Rate limiting logic for identified crawlers
+    # Get the current timestamp for comparison
+    set curr_time [clock seconds]
+    
+    # Check if this crawler has made a previous request
+    if { [info exists ACTIVE_CRAWLERS($user_agent)] } {
+        # If the crawler's next allowed request time is in the past,
+        # allow this request and update the next allowed time
+        if { [ $ACTIVE_CRAWLERS($user_agent) < $curr_time ] } {
+            set ACTIVE_CRAWLERS($user_agent) [expr {$curr_time + $MIN_INTERVAL}]
+            return
+        }
+        # If the crawler is making requests too quickly (before the minimum interval),
+        # reject the request to enforce the rate limit
+        reject
+        return
+    }
+
+    # First request from this crawler - record it and set the next allowed request time
+    set ACTIVE_CRAWLERS($user_agent) [expr {$curr_time + $MIN_INTERVAL}]
 }

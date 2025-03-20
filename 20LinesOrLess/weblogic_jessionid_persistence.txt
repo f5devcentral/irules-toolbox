@@ -1,15 +1,34 @@
-when HTTP_REQUEST {
-   if { [HTTP::cookie exists "JSessionID"] } {
-      persist uie [HTTP::cookie "JSessionID"]
-   } else {
-      set jsess [findstr [HTTP::uri] "JSessionID" 11 ";"]
-      if { $jsess != "" } {
-         persist uie $jsess
-      }
-   }
+# Create an F5 iRule that implements WebLogic session persistence using JSessionID. The iRule should check for JSessionID in both cookies and URI parameters during HTTP requests, use the found session ID to maintain persistence, and update the persistence table when new JSessionID cookies appear in HTTP responses.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the JSessionID cookie exists in the HTTP request
+    # This is the primary method WebLogic uses to track session state
+    if { [HTTP::cookie exists "JSessionID"] } {
+        # If the cookie exists, use its value to maintain persistence
+        # This ensures the client will be directed to the same server for the entire session
+        persist uie [HTTP::cookie "JSessionID"]
+        return
+    }
+
+    # If no cookie exists, check if the JSessionID is embedded in the URI
+    # WebLogic can include session IDs in URLs when cookies are disabled
+    # The findstr command searches for "JSessionID" in the URI, starting at position 11
+    # and ending at the ";" character
+    set jsess [findstr [HTTP::uri] "JSessionID" 11 ";"]
+    if { $jsess != "" } {
+        # If a session ID is found in the URI, use it for persistence
+        # This handles cases where cookies are disabled but session tracking is still needed
+        persist uie $jsess
+    }
 }
-when HTTP_RESPONSE {
-   if { [HTTP::cookie exists "JSessionID"] } {
-      persist add uie [HTTP::cookie "JSessionID"]
-   }
+
+when HTTP_RESPONSE priority 500 {
+    # Check if the server included a JSessionID cookie in its response
+    # This happens when a new session is created or an existing one is validated
+    if { [HTTP::cookie exists "JSessionID"] } {
+        # Add this session ID to the persistence table
+        # This ensures future requests with this session ID will be directed to the same server
+        # The "add" operation creates a new entry if one doesn't exist
+        persist add uie [HTTP::cookie "JSessionID"]
+    }
 }

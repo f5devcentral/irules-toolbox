@@ -1,19 +1,35 @@
-when HTTP_REQUEST {
-  # Log a debug message with client IP:port and the class contents
-  log local0. "[IP::client_addr]:[TCP::client_port]: class badStrings"
+# Create an F5 iRule that blocks malicious HTTP requests by checking if the server IP is in a "Hosts" data group and if the URI contains any strings from a "badStrings" data group. The iRule should log connection details for troubleshooting, perform case-insensitive matching against the URI, and immediately drop the TCP connection when both conditions are met.
 
-  # Check if the client IP is part of the hosts datagroup
-  if { [class match [IP::server_addr] equals Hosts]} {
+when HTTP_REQUEST priority 500 {
+    # Log a debug message with client IP:port and the class contents
+    # This helps with troubleshooting by recording connection details
+    log local0. "[IP::client_addr]:[TCP::client_port]: class badStrings"
+
+    # Check if the client IP is part of the hosts datagroup
+    # This limits the rule to only apply to specific server IPs defined in the Hosts data group
+    # If the server IP doesn't match, exit the iRule and continue normal processing
+    if { ! [class match -- [IP::server_addr] equals Hosts] } {
+        return
+    }
+
     # Log a debug message indicating the client IP matched the Hosts class
+    # This confirms the first condition was met and helps with troubleshooting
     log local0. "[IP::client_addr]:[TCP::client_port]: matched Hosts"
 
     # Check if the requested URI contains any known bad strings
-    if { [class match [string tolower [HTTP::uri]] contains badStrings]} {
-      # Log a debug message indicating the client matched the Host class and had a bad string in the URI
-      log local0. "Matched server IP and found bad string in [HTTP::uri]: entry# [class match [string tolower [HTTP::uri]] contains badStrings]"
-
-      # Drop the TCP connection
-      drop
+    # The badStrings data group contains patterns that indicate potentially malicious requests
+    # The string tolower ensures case-insensitive matching
+    # The variable $entry will contain the matched entry from the data group if found
+    if { ! [set entry [class match -- [string tolower [HTTP::uri]] contains /Common/badStrings]] } {
+        return
     }
-  }
+
+    # Log a debug message indicating the client matched the Host class and had a bad string in the URI
+    # This provides detailed information about which bad string was found in the request
+    log local0. "Matched server IP and found bad string in [HTTP::uri]: entry# ${entry}"
+
+    # Drop the TCP connection
+    # This immediately terminates the connection without sending any response
+    # Prevents potentially malicious requests from reaching the application
+    drop
 }

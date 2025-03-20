@@ -1,20 +1,42 @@
-when SERVER_CONNECTED {
-  set Debug 1
-  set Collect_Len 3
-  TCP::collect $Collect_Len
-}
-when SERVER_DATA {
-  set Buf_Len [TCP::offset]
-  if { $Buf_Len < 3 } {
-    incr Collect_Len -$Buf_Len
+# Create an F5 iRule that blocks SSL 3.0 and older protocol versions by examining the initial SSL/TLS handshake. The iRule should collect the first 3 bytes of server data, parse the SSL/TLS record header to identify the protocol version, reject connections using SSL 3.0 (0x0300) or lower with an appropriate log message, and allow TLS 1.0 and higher connections to proceed normally.
+
+when SERVER_CONNECTED priority 500 {
+    # Set initial collection length to 3 bytes (minimum needed to identify SSL version)
+    set Collect_Len 3
+    # Begin collecting data from the server connection
     TCP::collect $Collect_Len
-    return
-  }
-  binary scan [TCP::payload] cS Rec_Type Version
-  if { $Version <= 768 } {
-    log local0. "stop_ssl3: Rejecting SSL3 or lower connection attempt from [IP::client_addr]"
-    reject
-  } else {
+}
+
+when SERVER_DATA priority 500 {
+    # Get the current number of bytes collected
+    set Buf_Len [TCP::offset]
+
+    # If we haven't collected enough data yet, continue collecting
+    if { $Buf_Len < 3 } {
+        # Adjust collection length based on what we've already received
+        incr Collect_Len -$Buf_Len
+        # Continue collecting remaining bytes
+        TCP::collect $Collect_Len
+        return
+    }
+
+    # Parse the SSL/TLS record header
+    # First byte is record type, next two bytes contain the protocol version
+    binary scan [TCP::payload] cS Rec_Type Version
+
+    # Check if SSL version is 3.0 (768) or lower
+    # SSL 3.0 = 0x0300 = 768 decimal
+    # SSL 2.0 = 0x0200 = 512 decimal
+    if { $Version <= 768 } {
+        # Log the rejected connection attempt
+        log local0. "stop_ssl3: Rejecting SSL3 or lower connection attempt from [IP::client_addr]"
+        # Terminate the connection
+        reject
+        # Disable all further events for this connection
+        event disable all
+        return
+    }
+
+    # For TLS 1.0 and higher, release the data and allow the connection
     TCP::release
-  }
 }

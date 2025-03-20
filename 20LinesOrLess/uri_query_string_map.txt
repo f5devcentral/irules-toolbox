@@ -1,11 +1,27 @@
-when HTTP_REQUEST {
-  if { [HTTP::host] eq "red.x.com" } {
+# Create an F5 iRule that ensures all requests to "example.com" include a "code=red" parameter. The iRule should check if the request is for the specific host, extract any existing "code" parameter value, replace it with "red" if it exists, or append "code=red" to the URI if no code parameter is present.
+
+when HTTP_REQUEST priority 500 {
+    # Only process requests for the specific host "example.com"
+    # Skip this iRule for all other hostnames
+    if { [HTTP::host] ne "example.com" } {
+        return
+    }
+
+    # Extract the value of the "code" parameter from the URI query string
+    # If "code" parameter exists, $q will contain its value; otherwise, $q will be empty
     set q [URI::query [HTTP::uri] code]
 
+    # If the "code" parameter exists in the query string
     if { $q ne "" } {
-      HTTP::uri [string map "$q red" [HTTP::uri]]
-    } else {
-      HTTP::uri "[HTTP::uri]&code=red"
+        # Replace the value of the "code" parameter with "red" in the URI
+        # Example: "/path?code=blue" becomes "/path?code=red"
+        HTTP::uri [string map "$q red" [HTTP::uri]]
+        return
     }
-  }
+
+    # If no "code" parameter exists in the query string
+    # Append "&code=red" to the URI
+    # Example: "/path?param=value" becomes "/path?param=value&code=red"
+    # Or: "/path" becomes "/path?code=red" (URI::query handles the ? vs & automatically)
+    HTTP::uri "[HTTP::uri]&code=red"
 }

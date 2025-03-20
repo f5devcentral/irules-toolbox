@@ -1,10 +1,21 @@
-when CLIENT_ACCEPTED {
-  SSL::disable clientside
-  switch [TCP::local_port] {
-    80 { }
-    443 { SSL::enable clientside }
-    default {
-      node 200.200.200.102 [TCP::local_port]
+# Create an F5 BIG-IP iRule that manages SSL processing and connection routing based on the incoming port. The rule should run when a client connection is accepted. It should disable ssl processing by default. It should handle different scenarios: for port 80, take no special action; for port 443, enable SSL processing; and for all other ports, forward the connection to a specific IP address while maintaining the original port number.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Disable SSL processing on the client side by default
+    SSL::disable clientside
+    
+    # Use a switch statement to handle different scenarios based on the local port
+    switch -- [TCP::local_port] {
+        80 { 
+            # For port 80 (HTTP), do nothing special
+        }
+        443 { 
+            # For port 443 (HTTPS), enable SSL processing on the client side
+            SSL::enable clientside 
+        }
+        default {
+            # For all other ports, forward the connection to a specific node
+            node 200.200.200.102 [TCP::local_port]
+        }
     }
-  }
 }

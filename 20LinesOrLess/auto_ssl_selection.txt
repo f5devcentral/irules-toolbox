@@ -1,22 +1,44 @@
-# Port 443 Rule
-when HTTP_REQUEST {
-  switch -glob [string tolower [HTTP::uri]] {
-    "/giving*" -
-    "/formsdisplay.aspx?ekfrm=12884903667" {
-      return
+# Create a pair of F5 iRules that implement selective SSL enforcement. The first rule should handle HTTPS traffic, keeping sensitive paths (like "/giving*" and a specific form) on HTTPS while redirecting all other traffic to HTTP. The second rule should handle HTTP traffic, forcing those same sensitive paths to use HTTPS while allowing all other paths to remain on HTTP.
+
+# Port 443 Rule - This rule handles HTTPS traffic on port 443
+ltm rule port_443 {
+    when HTTP_REQUEST priority 500 {
+        # Convert URI to lowercase and use glob pattern matching to check the path
+        switch -glob -- [string tolower [HTTP::uri]] {
+            # These specific paths should remain on HTTPS for security
+            # The giving path and any subpaths stay on HTTPS
+            "/giving*" -
+            # This specific form also stays on HTTPS (likely contains sensitive data)
+            "/formsdisplay.aspx?ekfrm=12884903667" {
+                # Allow these requests to continue on HTTPS without redirection
+                return
+            }
+            # For all other paths on HTTPS
+            default {
+                # Redirect from HTTPS to HTTP while preserving the host and normalized path
+                # This forces most traffic to use HTTP instead of HTTPS
+                HTTP::redirect "http://[HTTP::host][HTTP::uri -normalized]"
+            }
+        }
     }
-    default {
-      HTTP::redirect "http://[HTTP::host][HTTP::uri]"
-    }
-  }
 }
 
-# Port 80 Rule
-when HTTP_REQUEST {
-  switch -glob [string tolower [HTTP::uri]] {
-    "/giving*" -
-    "/formsdisplay.aspx?ekfrm=12884903667" {
-      HTTP::redirect "https://[HTTP::host][HTTP::uri]"
+# Port 80 Rule - This rule handles HTTP traffic on port 80
+ltm rule port_80 {
+    when HTTP_REQUEST priority 500 {
+        # Convert URI to lowercase and use glob pattern matching to check the path
+        switch -glob -- [string tolower [HTTP::uri]] {
+            # These specific paths should be forced to use HTTPS
+            # The giving path and any subpaths require secure connections
+            "/giving*" -
+            # This specific form also requires HTTPS (likely contains sensitive data)
+            "/formsdisplay.aspx?ekfrm=12884903667" {
+                # Redirect from HTTP to HTTPS while preserving the host and normalized path
+                # This ensures sensitive forms use secure connections
+                HTTP::redirect "https://[HTTP::host][HTTP::uri -normalized]"
+            }
+            # For all other paths on HTTP, no action is taken (implicit)
+            # They remain on HTTP as intended
+        }
     }
-  }
 }

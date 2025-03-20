@@ -1,6 +1,21 @@
-when CLIENT_DATA {
-  set pri [regexp -inline {} [UDP::payload] ]
-  set newPri [expr ( ($pri - (($pri / 6) * 8) ) ) ]
-  regsub $pri [UDP::payload] $newPri newPayload
-  UDP::payload replace 0 [UDP::payload length] $newPayload
+# Create an F5 iRule that rewrites syslog priority values in UDP messages. Extract the priority from angle brackets at the start of messages, apply a conversion formula, and replace the original priority with the new value.
+
+when CLIENT_DATA priority 500 {
+    # Extract the priority value from the syslog message using regex
+    # The pattern ^<(\d+)> matches the priority value enclosed in angle brackets at the start of the message
+    # Example: "<13>Feb 5 10:01:00 server message" would extract "<13>"
+    set pri [regexp -inline -- {^<(\d+)>} [UDP::payload]]
+    
+    # Calculate the new priority value using a formula to translate between different syslog priority schemes
+    # The formula subtracts (priority / 6) * 8 from the original priority
+    # This converts between different facility/severity mappings used by various syslog implementations
+    set newPri [expr {$pri - (($pri / 6) * 8)}]
+    
+    # Replace the original priority value with the new calculated priority in the payload
+    # This substitutes the first occurrence of the original priority with the new value
+    regsub -- $pri [UDP::payload] $newPri newPayload
+    
+    # Update the entire UDP payload with the modified content containing the new priority
+    # This replaces the entire payload from position 0 to the end with the modified version
+    UDP::payload replace 0 [UDP::payload length] $newPayload
 }

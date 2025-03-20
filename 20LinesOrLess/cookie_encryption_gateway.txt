@@ -1,17 +1,17 @@
-when RULE_INIT {
+when CLIENT_ACCEPTED priority 500 {
   # Exposed passphrase, but this key can be synchronized to the peer LTM
-  set static::passphrase "secret"
+  set PASSPHRASE "secret"
   # Private passphrase, but it isn't synchronized.  On LTM failover to
   # its peer, applications relying on the encrypted cookies will break.
-  # set static::passphrase [AES::key]
+  # set passphrase [AES::key]
 }
-when HTTP_REQUEST {
+when HTTP_REQUEST priority 500 {
   foreach { cookieName } [HTTP::cookie names] {
-    HTTP::cookie decrypt $cookieName $static::passphrase
+    HTTP::cookie decrypt $cookieName $PASSPHRASE
   }
 }
-when HTTP_RESPONSE {
+when HTTP_RESPONSE priority 500 {
   foreach { cookieName } [HTTP::cookie names] {
-    HTTP::cookie encrypt $cookieName $static::passphrase
+    HTTP::cookie encrypt $cookieName $PASSPHRASE
   }
 }

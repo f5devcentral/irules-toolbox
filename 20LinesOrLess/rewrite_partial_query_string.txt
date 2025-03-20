@@ -1,7 +1,21 @@
-when HTTP_REQUEST {
-  set qry [HTTP::query]
-  set id [URI::query "?$qry" "id"]
-  if { $id ne "" } {
+# Create an F5 BIG-IP iRule that duplicates a query string parameter. The rule should extract the value of the "id" parameter from HTTP requests and modify the query string to include both the original "id" parameter and a new "entityid" parameter with the same value.
+
+when HTTP_REQUEST priority 500 {
+    # Store the current query string from the HTTP request
+    set qry [HTTP::query]
+    
+    # Extract the value of the "id" parameter from the query string
+    # The "?$qry" format is needed because URI::query expects a full URI query format
+    set id [URI::query "?$qry" "id"]
+    
+    # If no "id" parameter exists in the query string, exit the rule
+    # This prevents unnecessary processing for requests without an id parameter
+    if { $id eq "" } {
+        return
+    }
+
+    # Modify the query string by replacing "id=<value>" with "entityid=<value>"
+    # This keeps the original "id" parameter while adding a duplicate "entityid" parameter with the same value
+    # The string map command performs the replacement on the entire query string
     HTTP::query [string map [list id=$id entityid=$id] $qry]
-  }
 }

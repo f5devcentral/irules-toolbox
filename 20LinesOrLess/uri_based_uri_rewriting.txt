@@ -1,11 +1,20 @@
-when HTTP_REQUEST {
-  switch [HTTP::uri] {
-    "/app/DentegraPortal/TransEDI" -
-    "/app/DeltaCarePortal/TransEDI" -
-    "/app/B2BEnt/TransEDI" -
-    "/app/B2BPMI/TransEDI" {
-      log "Incoming uri - [HTTP::uri] being translated to /b2b/transportServlet/TransEDI"
-      HTTP::uri "/b2b/transportServlet/TransEDI"
+# Create an F5 iRule that rewrites specific case sensitive portal URIs to a standardized backend path. The iRule should match requests to "/app/DentegraPortal/TransEDI", "/app/DeltaCarePortal/TransEDI", "/app/B2BEnt/TransEDI", and "/app/B2BPMI/TransEDI", log the original URI, and rewrite all of them to "/b2b/transportServlet/TransEDI".
+
+when HTTP_REQUEST priority 500 {
+    # Use switch statement to match the incoming URI against specific patterns
+    # The -- argument indicates the end of switch options and the start of the pattern to match
+    switch -- [HTTP::uri] {
+        "/app/DentegraPortal/TransEDI" -
+        "/app/DeltaCarePortal/TransEDI" -
+        "/app/B2BEnt/TransEDI" -
+        "/app/B2BPMI/TransEDI" {
+            # Log the original URI before rewriting for troubleshooting purposes
+            log "Incoming uri - [HTTP::uri] being translated to /b2b/transportServlet/TransEDI"
+
+            # Rewrite the URI to the standardized backend endpoint
+            # This allows multiple frontend paths to be consolidated to a single backend path
+            HTTP::uri "/b2b/transportServlet/TransEDI"
+        }
+        # Implicit default case: if none of the patterns match, no action is taken and the URI remains unchanged
     }
-  }
 }

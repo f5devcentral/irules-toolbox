@@ -1,34 +1,34 @@
-when RULE_INIT  {
+when FLOW_INIT priority 500  {
   # Header generation (in hexadecimal)
   # qr(1) opcode(0000) AA(1) TC(0) RD(1) RA(1) Z(000) RCODE(0000)
-  set ::header "8580"
+  set HEADER "8580"
   # 1 question, 1 answer, 0 NS, 0 Addition
-  set ::header "${::header}0001000100000000"
+  set HEADER "${HEADER}0001000100000000"
   # Type = A
-  set ::answerz "0001"
+  set ANSWERZ "0001"
   # Class = IN
-  set ::answerz "${::answerz}0001"
+  set ANSWERZ "${ANSWERZ}0001"
   # TTL = 1 minute
-  set ::answerz "${::answerz}0000003c"
+  set ANSWERZ "${ANSWERZ}0000003c"
   # Data length = 4
-  set ::answerz "${::answerz}0004"
+  set ANSWERZ "${ANSWERZ}0004"
   # Address = 0.0.0.0 (in hex)
-  set ::answerz "${::answerz}00000000"
+  set ANSWERZ "${ANSWERZ}00000000"
 }
-when CLIENT_DATA {
+when CLIENT_DATA priority 500 {
   binary scan [UDP::payload] H4@12A*@12H* id dname question
   # the drop statement below has to be in an if context
   if { 1 } {
-    set ::questionx "${question}"
-    set ::myl [string range ${::questionx} 0 end-8]
-    set ::myllower [string tolower ${::myl}]
+    set questionx "${question}"
+    set myl [string range ${questionx} 0 end-8]
+    set myllower [string tolower ${myl}]
     # this is the decimal representation of the hex for lowercased "fake.com"
-    if { [ string match "*1234567890abcdef123456" ${::myllower} ] } {
+    if { [ string match "*1234567890abcdef123456" ${myllower} ] } {
       pool internal-DNS
     } else {
-      set payload [binary format H* ${id}${::header}${question}${::myl}${::answerz} ]
+      set payload [binary format H* ${id}${HEADER}${question}${myl}${ANSWERZ} ]
       # drops the incoming connection
-      drop
+      UDP::drop
       UDP::respond $payload
     }
   }

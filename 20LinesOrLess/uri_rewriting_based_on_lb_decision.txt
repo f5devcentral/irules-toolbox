@@ -1,20 +1,50 @@
-when HTTP_REQUEST_SEND {
-  set uri [string tolower [clientside {HTTP::uri}]]
-  log local0. "[IP::client_addr]:[TCP::client_port]: selected server details: [LB::server] - \$uri: $uri"
-  if {[IP::addr [LB::server addr] equals 10.207.225.101] or [IP::addr [LB::server addr] equals 10.207.225.102] or [IP::addr [LB::server addr] equals 10.207.225.103] }{
-    log local0. "[IP::client_addr]:[TCP::client_port]: matched server check for .3 or .4"
-    switch -glob [HTTP::uri] {
-      "*/gsfo/gsfopub*" {
-        clientside {HTTP::uri "/Async/CMReceive.ashx"}
-        log local0. "[IP::client_addr]:[TCP::client_port]: updated URI to /Async/CMReceive.ashx"
-      }
-      "*/era/erapub*" {
-        clientside {HTTP::uri "/Async/ERAReceive.ashx"}
-        log local0. "[IP::client_addr]:[TCP::client_port]: updated URI to /Async/ERAReceive.ashx"
-      }
-      default {
-        log local0. "[IP::client_addr]:[TCP::client_port]: didn't match URI checks"
-      }
+# Create an F5 iRule that rewrites URIs based on backend server selection. The iRule should only process requests going to specific servers (10.207.225.101-103), check the normalized URI path for patterns like "/gsfo/gsfopub" or "/era/erapub", and rewrite matching URIs to standardized endpoints ("/Async/CMReceive.ashx" or "/Async/ERAReceive.ashx" respectively). Include detailed logging for troubleshooting.
+
+when HTTP_REQUEST_SEND priority 500 {
+    # Convert the client-side URI to lowercase for case-insensitive matching
+    # Using clientside command to access the client's original HTTP request
+    set uri [string tolower [clientside {HTTP::uri -normalized}]]
+
+    # Log the client IP:port, selected server details, and the URI for troubleshooting
+    # This creates a record of which backend server was selected for each request
+    log local0. "[set client_ip_port [IP::client_addr]:[TCP::client_port]]: selected server details: [LB::server] - \: $uri"
+
+    # Only proceed with URI rewriting for specific backend servers (101, 102, 103)
+    # Skip URI rewriting for all other backend servers
+    if { ![IP::addr [LB::server addr] equals 10.207.225.101]
+      && ![IP::addr [LB::server addr] equals 10.207.225.102]
+      && ![IP::addr [LB::server addr] equals 10.207.225.103] } {
+        return
     }
-  }
+
+    # Log that the server IP matched one of our target servers
+    log local0. "${client_ip_port}: matched server check for .3 or .4"
+
+    # Use switch with glob pattern matching to check the normalized URI path
+    # -glob enables wildcard matching, and -normalized ensures consistent path format
+    switch -glob -- [string tolower [HTTP::uri -normalized]] {
+        # If URI contains "/gsfo/gsfopub" anywhere in the path
+        # Example: "/some/path/gsfo/gsfopub/endpoint"
+        "*/gsfo/gsfopub*" {
+            # Rewrite the client-side URI to a specific endpoint
+            # This standardizes various GSFO requests to a single backend endpoint
+            clientside {HTTP::uri "/Async/CMReceive.ashx"}
+            # Log the URI rewriting action for troubleshooting
+            log local0. "${client_ip_port}: updated URI to /Async/CMReceive.ashx"
+        }
+        # If URI contains "/era/erapub" anywhere in the path
+        # Example: "/some/path/era/erapub/endpoint"
+        "*/era/erapub*" {
+            # Rewrite the client-side URI to a different specific endpoint
+            # This standardizes various ERA requests to a single backend endpoint
+            clientside {HTTP::uri "/Async/ERAReceive.ashx"}
+            # Log the URI rewriting action for troubleshooting
+            log local0. "${client_ip_port}: updated URI to /Async/ERAReceive.ashx"
+        }
+        # Default case: if URI doesn't match any of the patterns above
+        default {
+            # Log that no URI rewriting was performed
+            log local0. "${client_ip_port}: didn't match URI checks"
+        }
+    }
 }

@@ -1,11 +1,16 @@
-when HTTP_RESPONSE {
-  # Check if server response is a redirect
-  if { [HTTP::header is_redirect]} {
-    # Log original and updated values
-    log local0. "Original Location header value: [HTTP::header value Location],\
-           updated: [string map -nocase "http:// https:// :80/ /" [HTTP::header value Location]]"
-    # Do the update, replacing http:// with https:// and  :80/ with /
-    HTTP::header replace Location \
-        [string map -nocase "http:// https:// :80/ /" [HTTP::header value Location]]
-  }
+# Create an F5 BIG-IP iRule that modifies HTTP redirect responses to use HTTPS instead of HTTP. The rule should check if the response contains a redirect header, and if so, modify the Location header to replace HTTP with HTTPS and remove any port 80 references. The rule should also log both the original and modified Location header values for troubleshooting purposes.
+
+when HTTP_RESPONSE priority 500 {
+    # Check if the response is not a redirect (3xx status with Location header)
+    if { ![HTTP::header is_redirect]} {
+        # If it's not a redirect, exit the rule
+        return
+    }
+
+    # Log the original and updated Location header values
+    # The string map replaces "http://" with "https://" and removes port 80 references and sets the location variable
+    log local0. "Original Location header value: [HTTP::header value Location], updated: [set location [string map -nocase "http:// https:// :80/ /" [HTTP::header value Location]]]"
+    
+    # Replace the Location header with the updated value
+    HTTP::header replace Location ${location}
 }

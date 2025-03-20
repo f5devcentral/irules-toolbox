@@ -1,3 +1,3 @@
-when HTTP_RESPONSE {
+when HTTP_RESPONSE priority 500 {
   HTTP::header insert Set-Cookie "mycookie=xx; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; HttpOnly"
 }

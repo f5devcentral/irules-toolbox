@@ -1,14 +1,36 @@
-when HTTP_REQUEST {
-  switch -glob [HTTP::uri] {
-    "/error*" {
-      if { (([class match [IP::client_addr] equals ipgrouptest]) or ([class match [IP::client_addr] equals ipgrouptest2])) } {
-      #If the client IP match the ipgrouptest/2 class we do nothing
-      } else { HTTP::respond 403 }
+# Create an F5 BIG-IP iRule that restricts access to specific URI paths based on client IP addresses. The rule should use pattern matching to identify different URI paths and check if the client's IP address belongs to the appropriate data groups for each path, returning a 403 Forbidden response for unauthorized access attempts while allowing all other requests to proceed normally.
+
+when HTTP_REQUEST priority 500 {
+    # Use a switch statement to match the requested URI against different patterns
+    # The -glob flag enables glob-style pattern matching (wildcards)
+    switch -glob -- [HTTP::uri] {
+        # Match any URI that starts with "/error"
+        "/error*" {
+            # Check if the client's IP address belongs to either ipgrouptest or ipgrouptest2 data groups
+            # These data groups contain allowed IP addresses for this URI pattern
+            if { (([class match -- [IP::client_addr] equals ipgrouptest]) or ([class match -- [IP::client_addr] equals ipgrouptest2])) } {
+                # If the client IP matches either allowed group, do nothing and allow the request to proceed
+                # The request continues through the normal processing flow
+            } else {
+                # If the client IP doesn't match any allowed group, block access
+                # Return HTTP 403 Forbidden response and terminate request processing
+                HTTP::respond 403
+            }
+        }
+        # Match any URI that starts with "/example"
+        "/example*" {
+            # Check if the client's IP address belongs to either ipgrouptest or ipgrouptest3 data groups
+            # Note that this path uses a different combination of allowed IP groups
+            if { (([class match -- [IP::client_addr] equals ipgrouptest]) or ([class match -- [IP::client_addr] equals ipgrouptest3])) } {
+                # If the client IP matches either allowed group, do nothing and allow the request to proceed
+                # The request continues through the normal processing flow
+            } else {
+                # If the client IP doesn't match any allowed group, block access
+                # Return HTTP 403 Forbidden response and terminate request processing
+                HTTP::respond 403
+            }
+        }
+        # Implicit default case: any URI not matching the patterns above will be allowed
+        # regardless of client IP address (no restrictions applied)
     }
-    "/example*" {
-      if { (([class match [IP::client_addr] equals ipgrouptest]) or ([class match [IP::client_addr] equals ipgrouptest3])) } {
-        #If the client IP match the ipgrouptest/3 class we do nothing
-      } else { HTTP::respond 403 }
-    }
-  }
 }

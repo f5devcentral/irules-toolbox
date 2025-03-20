@@ -1,6 +1,7 @@
-when HTTP_REQUEST {
+# note: with the advent of -normalized, this iRule is no longer relevant
+when HTTP_REQUEST priority 500 {
   # decode original URI.
-  set tmpUri [HTTP::uri]
+  set tmpUri [HTTP::uri -normalized]
   set uri [URI::decode $tmpUri]
 
   # repeat decoding until the decoded version equals the previous value.

@@ -1,10 +1,22 @@
-when HTTP_REQUEST {
-  if {$loop == 0} {
-    foreach header {[HTTP::header names]} {
-      if {[string length $header] > 32768} {
-        log local0. "Header exceeds maximum length! - Header Name: $header, Length: [string length $header], Value: [HTTP::header value $header]"
-      }
+# Create an F5 iRule that checks HTTP request headers for excessive length. The rule should iterate through all headers, log any that exceed 32KB, and avoid recursive processing. Include basic error handling and logging functionality.
+
+when HTTP_REQUEST priority 500 {
+    # Check if this is a recursive call to avoid infinite loops
+    if {[info exists loop] && $loop != 0} {
+        return
     }
+
+    # Iterate through all HTTP headers in the request
+    foreach header {[HTTP::header names]} {
+        # Check if any header exceeds the maximum allowed length (32768 characters)
+        if { [string length $header] <= 32768 } {
+            continue
+        }
+
+        # Log an error message with header details if it exceeds the limit
+        log local0. "Header exceeds maximum length! - Header Name: $header, Length: [string length $header], Value: [HTTP::header value $header]"
+    }
+
+    # Increment the loop counter to prevent recursive processing
     incr loop
-  }
 }

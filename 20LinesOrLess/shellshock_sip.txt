@@ -1,13 +1,35 @@
-when CLIENT_DATA {
-  set sCVEPattern "*: () \{*"
-  set bCVEFound 0
-  if { [string match $sCVEPattern [UDP::payload]] } {
-    set bCVEFound 1
-  }
+# Create an F5 BIG-IP iRule that protects SIP servers from Shellshock vulnerability. The rule should log attack details including client IP and SIP headers before rejecting the connection.
+
+when CLIENT_DATA priority 500 {
+    # Define the pattern that identifies a Shellshock attack in SIP messages
+    # The pattern looks for the characteristic ": () {" sequence that triggers the vulnerability
+    set sCVEPattern "*: () \{*"
+    
+    # Initialize a flag to track if a Shellshock attack is detected
+    # Default is 0 (false) - no attack detected yet
+    set bCVEFound 0
+    
+    # Check if the UDP payload (SIP message content) contains the Shellshock pattern
+    # SIP uses UDP as its transport protocol, so we examine the raw UDP data
+    if { [string match $sCVEPattern [UDP::payload]] } {
+        # If pattern is found, set the flag to 1 (true) to indicate attack detected
+        # This flag will be used in the SIP_REQUEST event to take action
+        set bCVEFound 1
+    }
 }
-when SIP_REQUEST {
-  if { $bCVEFound } {
-    log local0. "Detected CVE-2014-6271 Shellshock attack! IP: '[IP::client_addr]' From: [SIP::from] To: [SIP::to]"
-    reject
-  }
+
+when SIP_REQUEST priority 500 {
+    # This event triggers when a SIP request is received
+    # Check if the Shellshock pattern was detected in the CLIENT_DATA event
+    if { $bCVEFound } {
+        # Log the attack with detailed information including:
+        # - Client IP address
+        # - SIP From header (identifies the sender of the request)
+        # - SIP To header (identifies the intended recipient)
+        log local0. "Detected CVE-2014-6271 Shellshock attack! IP: '[IP::client_addr]' From: [SIP::from] To: [SIP::to]"
+        
+        # Reject the SIP request to block the attack
+        # This prevents the potentially malicious request from reaching the SIP server
+        reject
+    }
 }

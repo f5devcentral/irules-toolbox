@@ -1,9 +1,23 @@
-when HTTP_REQUEST {
- set ver tcl_platform(osVersion)
- if { ($ver starts_with "11.5") or ($ver starts_with "11.6") {
-   HTTP::host "nik-int.test.com"
- } else {
-   HTTP::header replace Host "nik-int.test.com"
- }
- HTTP::uri "/media[HTTP::uri]"
+# Create an F5 BIG-IP iRule that functions as a reverse proxy by modifying request headers. The rule should change the Host header to a specific internal domain, and prepend a directory path to all URIs to properly route incoming requests to the backend server.
+
+when HTTP_REQUEST priority 500 {
+    # Get the current BIG-IP operating system version
+    set ver tcl_platform(osVersion)
+
+    # Check if the BIG-IP version is 11.5.x or 11.6.x
+    # Different versions require different methods to modify the Host header
+    if { ($ver starts_with "11.5") or ($ver starts_with "11.6") } {
+        # For BIG-IP v11.5 or v11.6, use the deprecated direct assignment method
+        # to change the Host header to "nik-int.test.com"
+        HTTP::host "nik-int.test.com"
+    } else {
+        # For newer BIG-IP versions (12.x and above), use the recommended
+        # HTTP::header replace method to modify the Host header
+        HTTP::header replace Host "nik-int.test.com"
+    }
+
+    # Prepend "/media" to the beginning of the original URI
+    # This effectively moves all requests into a /media subdirectory
+    # Example: "/index.html" becomes "/media/index.html"
+    HTTP::uri "/media[HTTP::uri]"
 }

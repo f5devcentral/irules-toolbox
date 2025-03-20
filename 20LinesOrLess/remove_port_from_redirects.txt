@@ -1,15 +1,34 @@
-when HTTP_RESPONSE {
-   if { [HTTP::is_redirect] } {
-      if { [HTTP::header Location] contains "www.acme.com:10040" } {
-         log local0. "Original Location value: [HTTP::header Location]"
-         HTTP::header replace Location [string map -nocase {www.acme.com:10400 www.acme.com} [HTTP::header value Location]]
-      }
-   }
-}
-when HTTP_RESPONSE priority 501 {
-   if { [HTTP::is_redirect] } {
+# Create an F5 BIG-IP iRule that removes port numbers from redirect URLs for a specific domain. Check if the response is a redirect containing a specific domain with port number, log the original URL, remove the port number, and log the modified URL.
 
-      # Debug logging only. Remove this event once done testing
-      log local0. "Updated Location value: [HTTP::header Location]"
-   }
+when HTTP_RESPONSE priority 500 {
+    # Check if the response is not a redirect (3xx status code)
+    # If it's not a redirect, exit the rule without taking any action
+    if { ![HTTP::is_redirect] } {
+        return
+    }
+
+    # Check if the Location header does not contain "www.acme.com:10040"
+    # If it doesn't contain this specific domain and port, exit the rule
+    if { !([HTTP::header Location] contains "www.acme.com:10040") } {
+        return
+    }
+
+    # Log the original Location header value for debugging purposes
+    log local0. "Original Location value: [HTTP::header Location]"
+    
+    # Replace the Location header value, removing the port number (10400)
+    # This converts "www.acme.com:10400" to just "www.acme.com" in the redirect URL
+    HTTP::header replace Location [string map -nocase {www.acme.com:10400 www.acme.com} [HTTP::header value Location]]
+}
+
+when HTTP_RESPONSE priority 501 {
+    # Secondary event handler with slightly lower priority (501)
+    # Check if the response is not a redirect
+    if { ![HTTP::is_redirect] } {
+        return
+    }
+
+    # Debug logging only. Remove this event once done testing
+    # This logs the final Location header value after any modifications from the priority 500 handler
+    log local0. "Updated Location value: [HTTP::header Location]"
 }

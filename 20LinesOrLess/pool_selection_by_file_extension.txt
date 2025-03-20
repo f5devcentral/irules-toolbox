@@ -1,9 +1,17 @@
-when HTTP_REQUEST {
-  switch -glob [HTTP::path] {
-    "*.jpg"        -
-    "*.gif"        -
-    "*.png"        { pool image_pool }
-    "*.pdf"        { pool pdf_pool }
-    default        { pool web_pool }
-  }
+# Create an F5 BIG-IP iRule that routes HTTP requests to different pools based on the file extension of the requested resource. Route requests for image files (jpg, gif, png) to an image_pool, PDF files to a pdf_pool, and all other requests to a web_pool.
+
+when HTTP_REQUEST priority 500 {
+    # Use a switch statement with glob matching to check the requested path
+    switch -glob -- [HTTP::path] {
+        # For image file extensions (jpg, gif, png)
+        "*.jpg"        -
+        "*.gif"        -
+        "*.png"        { pool image_pool }
+        
+        # For PDF files
+        "*.pdf"        { pool pdf_pool }
+        
+        # For all other file types or paths
+        default        { pool web_pool }
+    }
 }

@@ -1,7 +1,14 @@
-when HTTP_REQUEST {
-  if { [TCP::local_port] == 443 } {
-    HTTP::header insert SSL 1
-  } else {
-    HTTP::header insert SSL 0}
-  }
+# Create an F5 BIG-IP iRule that adds a custom HTTP header to indicate whether the client connection is secure. The rule should run for every HTTP request. It should check if the connection is on port 443 (HTTPS), insert an "SSL" header with value 1 if it is, and insert an "SSL" header with value 0 for all other ports.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the local port (the port the client connected to) is 443 (HTTPS)
+    if { [TCP::local_port] == 443 } {
+        # If it's HTTPS, insert an HTTP header named "SSL" with value 1
+        HTTP::header insert SSL 1
+        # Exit the rule early for HTTPS connections
+        return
+    }
+    
+    # For all other ports (including 80 for HTTP), insert an "SSL" header with value 0
+    HTTP::header insert SSL 0
 }

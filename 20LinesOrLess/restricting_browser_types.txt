@@ -1,7 +1,14 @@
-when HTTP_REQUEST {
-  # Check if the UA header does not contain MSIE
-  if { not ([HTTP::header "User-Agent"] contains "MSIE") } {
-    # Send an HTTP response indicating the UA isn't allowed?
+# Create an F5 BIG-IP iRule that restricts website access to Internet Explorer browsers only. The rule should check if the User-Agent header contains "MSIE" and allow those requests to proceed normally, while blocking all other browsers by returning a custom message stating the browser isn't allowed.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the User-Agent header contains "MSIE" (Internet Explorer)
+    # If it does contain MSIE, return from the iRule and allow the request to proceed normally
+    if { ([HTTP::header "User-Agent"] contains "MSIE") } {
+        return
+    }
+
+    # If we reach this point, the User-Agent is not Internet Explorer
+    # Block the request by sending a custom response with HTTP 200 status code
+    # The response body informs the user that their browser type is not allowed
     HTTP::respond 200 content {your browser isn't allowed}
-  }
 }

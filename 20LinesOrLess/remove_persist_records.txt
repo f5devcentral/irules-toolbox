@@ -1,5 +1,12 @@
-when HTTP_REQUEST {
-  if {[HTTP::uri] contains "persist=0"} {
-    persist delete source_addr [IP::client_addr]
-  }
+# Create an F5 BIG-IP iRule that allows for manual clearing of persistence via a URL parameter (persist=0)
+
+when HTTP_REQUEST priority 500 {
+    # Check if the URI contains the parameter "persist=0"
+    # This allows for manual clearing of persistence via a URL parameter
+    if { [HTTP::uri] contains "persist=0" } {
+        # If the parameter is found, delete the source address persistence record
+        # for the current client's IP address
+        # This forces the client to establish a new session on their next request
+        persist delete source_addr [IP::client_addr]
+    }
 }

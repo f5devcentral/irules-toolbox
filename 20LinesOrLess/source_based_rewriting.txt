@@ -1,13 +1,24 @@
-when HTTP_REQUEST {
-  if { [IP::addr [IP::client_addr] equals 10.10.10.0/24] } {
-    #Do nothing to forward to the default pool
-  } else {
-      #Replace the host
-      HTTP::header replace Host "www.abc.com"
-      set [string tolower [HTTP::uri]]
-      #Check if the uri start with /go. If not, replace it with /go.
-      if { not $uri starts_with "/go"} {
-        HTTP::uri "/go"
-      }
-  }
+# Create an F5 iRule that handles HTTP requests differently based on source IP. For clients in the 10.10.10.0/24 subnet, allow normal processing. For all other clients, replace the Host header with "www.abc.com" and redirect to "/go" unless the URI already starts with "/go".
+
+when HTTP_REQUEST priority 500 {
+    # Check if the client IP address is in the 10.10.10.0/24 subnet
+    if { [IP::addr [IP::client_addr] equals 10.10.10.0/24] } {
+        # For internal clients in this subnet, use default routing with no modifications
+        # Exit the iRule to allow normal request processing
+        return
+    }
+
+    # For all other client IPs (external clients), modify the request
+
+    # Replace the Host header with "www.abc.com" regardless of what was sent
+    HTTP::header replace Host "www.abc.com"
+
+    # Check if the URI starts with "/go"
+    if { [string tolower [HTTP::uri]] starts_with "/go"} {
+        # Exit the iRule to allow normal request processing
+        return
+    }
+
+    # If it doesn't start with "/go", replace the entire URI with just "/go"
+    HTTP::uri "/go"
 }

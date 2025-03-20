@@ -1,9 +1,9 @@
-when HTTP_REQUEST {
+when HTTP_REQUEST priority 500 {
   STATS::incr StatsDemo inFlight
   if { [STATS::get StatsDemo inFlight] > [STATS::get StatsDemo inFlightMax] } {
     STATS::set StatsDemo inFlightMax [STATS::get StatsDemo inFlight]
   }
 }
-when HTTP_RESPONSE {
+when HTTP_RESPONSE priority 500 {
   STATS::incr StatsDemo inFlight -1
 }

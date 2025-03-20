@@ -1,17 +1,17 @@
 # Option 1
-when HTTP_REQUEST {
-  if { [string tolower [HTTP::header Accept-Encoding]] contains "gzip" or [string tolower [HTTP::header Accept-Encoding]] contains "deflate" } {
+when HTTP_REQUEST priority 500 {
+  if { ([string tolower [HTTP::header Accept-Encoding]] contains "gzip") or ([string tolower [HTTP::header Accept-Encoding]] contains "deflate") } {
     pool Test_pool
     log local0. "Compression enabled, request has been routed [HTTP::header "Accept-Encoding"]"
   } else {
-      HTTP::respond 500 Content "PLEASE SEND A GZIP ENABLED REQUEST" noserver Content-Type "text/html" Connection "Close"
-      log local0. "Compression disabled, request has NOT been routed [HTTP::header "Accept-Encoding"]: "
+    HTTP::respond 500 Content "PLEASE SEND A GZIP ENABLED REQUEST" noserver Content-Type "text/html" noserver Connection "Close"
+    log local0. "Compression disabled, request has NOT been routed [HTTP::header "Accept-Encoding"]: "
   }
 }
 
 # Option 2
-when HTTP_REQUEST {
-  switch -glob [string tolower [HTTP::header Accept-Encoding]] {
+when HTTP_REQUEST priority 500 {
+  switch -glob -- [string tolower [HTTP::header Accept-Encoding]] {
     "*gzip*" -
     "*deflate*" {
       pool Test_pool

@@ -1,28 +1,49 @@
+# Create an F5 iRule that randomizes SNAT IP selection from a predefined class. The iRule should build a list of available SNAT IPs from CIDR blocks in a class called snat_class during initialization, and assign a random SNAT IP to each client connection.
+
+# Convert an IP address in dotted decimal format to an integer
 proc ip2int { ip } {
-  set octets [split $ip .]
-  set ipint [expr {(256 * 256 * 256 * [lindex $octets 0]) + (256 * 256 * [lindex $octets 1]) + (256 * [lindex $octets 2]) + [lindex $octets 3]}]
-  return $ipint
+    set octets [split $ip .]
+    set ipint [expr {(256 * 256 * 256 * [lindex $octets 0]) + (256 * 256 * [lindex $octets 1]) + (256 * [lindex $octets 2]) + [lindex $octets 3]}]
+    return $ipint
 }
 
+# Generate a random integer between 0 and max (inclusive)
 proc random { max } {
-  return [expr {int(rand()*($max+1))}]
+    return [expr {int(rand()*($max+1))}]
 }
 
-when RULE_INIT {
-  set static::snat_list {}
-  foreach elm [class get snat_class] {
-    scan [lindex $elm 0] {%[^/]/%s} ip mask
-    set st [IP::addr $ip mask $mask]
-    set num [expr {[call ip2int 255.255.255.255] - [call ip2int $mask] + 1}]
-    for {set i 0} {$i < $num} {incr i} {
-      set t [expr {[call ip2int $ip] + $i}]
-      lappend static::snat_list [IP::addr parse -ipv4 [binary format I $t]]
+# Initialize the SNAT pool when the rule is loaded
+when RULE_INIT priority 500 {
+    # Create an empty list to store all available SNAT IP addresses
+    set static::snat_list {}
+    
+    # Iterate through each CIDR entry in the snat_class
+    foreach elm [class get snat_class] {
+        # Parse the CIDR notation into IP and subnet mask
+        scan [lindex $elm 0] {%[^/]/%s} ip mask
+        
+        # Get the subnet address
+        set st [IP::addr $ip mask $mask]
+        
+        # Calculate the number of IP addresses in this subnet
+        set num [expr {[call ip2int 255.255.255.255] - [call ip2int $mask] + 1}]
+        
+        # Add each IP address in the subnet to the SNAT list
+        for {set i 0} {$i < $num} {incr i} {
+            set t [expr {[call ip2int $ip] + $i}]
+            lappend static::snat_list [IP::addr parse -ipv4 [binary format I $t]]
+        }
     }
-  }
-  set static::snat_len [llength $static::snat_list]
-  unset elm ip mask st num i t
+    
+    # Store the total number of available SNAT IP addresses
+    set static::snat_len [llength $static::snat_list]
+    
+    # Clean up temporary variables
+    unset -nocomplain -- elm ip mask st num i t
 }
 
-when CLIENT_ACCEPTED {
-  snat [lindex $static::snat_list [call random $static::snat_len]]
+# When a client connection is accepted, assign a random SNAT IP
+when CLIENT_ACCEPTED priority 500 {
+    # Select a random IP from the SNAT list and apply it as the source address
+    snat [lindex $static::snat_list [call random $static::snat_len]]
 }

@@ -1,5 +1,12 @@
-when ACCESS_POLICY_COMPLETED {
-  set username [ACCESS::session data get "session.logon.last.username"]
-  set content "< script type=text/javascript language=javascript> function s(){ document.f.submit(); } \ \ "
-  ACCESS::respond 200 content $content
+# Create an F5 BIG-IP iRule that handles the completion of an access policy. The rule should retrieve the username from the access session data, create a JavaScript snippet for automatic form submission, and respond to the client with a 200 OK status containing this JavaScript. This iRule is part of an authentication flow, possibly integrating RADIUS authentication with a web application.
+
+when ACCESS_POLICY_COMPLETED priority 500 {
+    # Retrieve the username from the access session data
+    set username [ACCESS::session data get "session.logon.last.username"]
+    
+    # Create a JavaScript snippet that will automatically submit a form
+    set content "< script type=text/javascript language=javascript> function s(){ document.f.submit(); } \ \ "
+    
+    # Respond to the client with a 200 OK status and the JavaScript content
+    ACCESS::respond 200 content $content
 }

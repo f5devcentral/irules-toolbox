@@ -1,11 +1,34 @@
-when FLOW_INIT {
-  set ipaddr [IP::client_addr]
-  set locale [whereis $ipaddr country]
-  log local0. "IP Address/Counry $ipaddr/$locale"
-  switch $locale {
-    "US" -
-    "CA" { return }
-    "GB" { ACL::action drop }
-    default { ACL::action reset }
-  }
+# Create an F5 iRule that implements geolocation-based access control. The iRule should identify the client's country using the whereis command, log connection attempts with their country of origin, allow connections from the US and Canada, silently drop connections from Great Britain, and reset connections from all other countries.
+
+when FLOW_INIT priority 500 {
+    # Get the client's IP address and store it in the variable "ipaddr"
+    set ipaddr [IP::client_addr]
+    
+    # Use the "whereis" command to determine the country of origin for the IP address
+    # This requires the F5 geolocation database to be properly configured
+    set locale [whereis $ipaddr country]
+    
+    # Log the client IP address and country code to the local0 facility
+    # This creates an audit trail of connection attempts and their origins
+    log local0. "IP Address/Counry $ipaddr/$locale"
+    
+    switch -- $locale {
+        "US" -
+        "CA" { 
+            # Allow connections from the United States and Canada
+            # The return command allows the connection to proceed normally
+            return 
+        }
+        "GB" { 
+            # Drop connections from Great Britain
+            # ACL::action drop silently terminates the connection without notification
+            ACL::action drop 
+        }
+        default { 
+            # For all other countries
+            # ACL::action reset terminates the connection and sends a TCP reset
+            # This actively notifies the client that the connection was refused
+            ACL::action reset 
+        }
+    }
 }

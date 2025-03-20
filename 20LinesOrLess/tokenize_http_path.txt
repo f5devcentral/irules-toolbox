@@ -1,7 +1,19 @@
-when HTTP_REQUEST {
-  set host [HTTP::host]
-  set uri_list [split [string tolower [HTTP::path]] /]
-  if { [lindex $uri_list 2] equals "admin"} {
-    HTTP::respond 302 Location "https://$host/user"
-  }
+# Create an F5 iRule that redirects users attempting to access admin sections. The iRule should extract the hostname from HTTP requests, split the path into segments, check if the third segment equals "admin", and if so, redirect the user to the "/user" path on the same hostname using a 302 redirect.
+
+when HTTP_REQUEST priority 500 {
+    # Extract the hostname from the HTTP request
+    # This captures the domain name the client is trying to access
+    set host [HTTP::host]
+    
+    # Convert the HTTP path to lowercase and split it into segments using '/' as delimiter
+    # This creates a list of path components for analysis
+    set uri_list [split [string tolower [HTTP::path]] /]
+    
+    # Check if the third segment of the path (index 2) is "admin"
+    # Example: In "/app/admin/dashboard", "admin" would be at index 2
+    if { [lindex $uri_list 2] equals "admin"} {
+        # If the path contains "/admin/" at the third position, redirect to "/user" path
+        # Sends HTTP 302 (temporary redirect) to the same hostname but with "/user" path
+        HTTP::respond 302 Location "https://$host/user"
+    }
 }

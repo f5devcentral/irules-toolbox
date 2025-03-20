@@ -1,11 +1,21 @@
-when CLIENT_ACCEPTED {
-  if { [class match [IP::client_addr] eq gold_users } {
-    rateclass rateshape_10mb
-  } elseif { [class match [IP::client_addr] eq  silver_users] } {
-      rateclass rateshape_512k
-  } elseif { [class match [IP::client_addr] eq lump_o_coal_users] } {
-      rateclass rateshape_128k
-  } else {
-      discard
-  }
+# Create an F5 BIG-IP iRule that implements a tiered rate shaping policy based on client IP addresses. The rule should run when a client connection is accepted. It should check the client's IP against three different user classes: gold, silver, and lump_o_coal. Apply different rate shaping policies for each class: 10Mbps for gold, 512Kbps for silver, and 128Kbps for lump_o_coal users. If the client's IP doesn't match any of these classes, the connection should be dropped.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Check if the client's IP address matches the "gold_users" class
+    if { [class match -- [IP::client_addr] /Common/eq gold_users] } {
+        # Apply 10Mbps rate shaping for gold users
+        rateclass rateshape_10mb
+    # Check if the client's IP address matches the "silver_users" class
+    } elseif { [class match -- [IP::client_addr] eq /Common/silver_users] } {
+        # Apply 512Kbps rate shaping for silver users
+        rateclass rateshape_512k
+    # Check if the client's IP address matches the "lump_o_coal_users" class
+    } elseif { [class match -- [IP::client_addr] eq /Common/lump_o_coal_users] } {
+        # Apply 128Kbps rate shaping for lump_o_coal users
+        rateclass rateshape_128k
+    # If the client's IP doesn't match any of the above classes
+    } else {
+        # Discard the connection for all other users
+        drop
+    }
 }

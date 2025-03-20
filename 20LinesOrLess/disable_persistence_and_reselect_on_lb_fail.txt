@@ -1,15 +1,15 @@
-when HTTP_REQUEST {
+when HTTP_REQUEST priority 500 {
   if { ([HTTP::cookie exists "JSESSIONID"]) and ([active_members [LB::server pool]] > 0) } {
     persist uie [HTTP::cookie "JSESSIONID"]
   }
 }
-when HTTP_RESPONSE {
+when HTTP_RESPONSE priority 500 {
   if { ([HTTP::cookie exists "JSESSIONID"]) and ([active_members [LB::server pool]] > 0) } {
     persist add uie [HTTP::cookie "JSESSIONID"]
   }
 }
-when LB_FAILED {
-  if {[active_members [LB::server pool]] == 0 } {
+when LB_FAILED priority 500 {
+  if { [active_members [LB::server pool]] == 0 } {
     LB::detach
     LB::reselect pool "sorry"
   }

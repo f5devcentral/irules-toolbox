@@ -1,12 +1,20 @@
-when HTTP_REQUEST {
-  if { [string tolower [HTTP::host][HTTP::uri]] contains "www.mcgill.ca/desautels" } {
-    switch -glob [string tolower [HTTP::header User-Agent]] {
-      "*blackberry*" -
-      "*iphone*" -
-      "*android*" -
-      "*windows phone os 7*" {
-        HTTP::redirect "http://desautels.mobilizeme.com"
-      }
+# Create an F5 BIG-IP iRule that detects and redirects mobile browsers visiting a specific section of a website. The rule should check if the requested URL starts with a particular domain and path, then examine the User-Agent header to identify common mobile platforms like BlackBerry, iPhone, Android, and Windows Phone. When a mobile device is detected, redirect the user to a mobile-optimized version of the site. The rule should use case-insensitive matching for both the URL and User-Agent checks.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the request is for the specific section of the website
+    # Convert host and path to lowercase for case-insensitive comparison
+    if { [string tolower [HTTP::host][HTTP::path]] starts_with "www.example.com/section" } {
+        # Check the User-Agent header against known mobile browser patterns
+        # Convert to lowercase for case-insensitive matching
+        switch -glob -- [string tolower [HTTP::header User-Agent]] {
+            # Match various mobile device platforms
+            "*blackberry*" -
+            "*iphone*" -
+            "*android*" -
+            "*windows phone os 7*" {
+                # Redirect mobile users to the mobile-optimized site
+                HTTP::redirect "http://mobile.example.com"
+            }
+        }
     }
-  }
 }

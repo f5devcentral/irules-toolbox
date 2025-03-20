@@ -1,9 +1,21 @@
-when HTTP_REQUEST {
-  if { [HTTP::path] equals "/" }{
-    if { not ([string tolower [HTTP::query]] starts_with "user=soviet") }{
-      if { [HTTP::header "User-Agent"] contains "soviet" }{
-        HTTP::redirect "http://soviet.com/"
-      }
+# Create an F5 BIG-IP iRule that selectively redirects clients based on their request path, query string, and User-Agent header. The rule should only process requests for the root path, ignore requests with a query string starting with "user=example", and redirect clients with "example" in their User-Agent header to example.com.
+
+when HTTP_REQUEST priority 500 {
+    # Only process requests for the root path "/"
+    # Skip all other paths by returning from the rule
+    if { [HTTP::path] ne "/" } {
+        return
     }
-  }
+ 
+    # Check if the query string starts with "user=example" (case-insensitive)
+    # If it does, exit the rule without redirecting
+    if { ([string tolower [HTTP::query]] starts_with "user=example") } {
+        return
+    }
+
+    # Check if the User-Agent header contains "example"
+    # If it does, redirect the client to example.com
+    if { [HTTP::header "User-Agent"] contains "example" } {
+        HTTP::redirect "http://example.com/"
+    }
 }

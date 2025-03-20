@@ -1,9 +1,11 @@
-when HTTP_REQUEST {
+when HTTP_REQUEST priority 500 {
   # Class order isn't guaranteed to come back in the order entered in the bigip.conf...
-  log local0. "list: $::host_uri_pool_selector_class"
-  log local0. "lsort: [lsort -decreasing -index 0 $::host_uri_pool_selector_class]"
-  foreach row [lsort -decreasing -index 1 $::host_uri_pool_selector_class] {
+  log local0. "list: [class get -- /Common/host_uri_pool_selector_class]"
+  log local0. "lsort: [lsort -decreasing -index 0 [class get /Common/host_uri_pool_selector_class]]"
+
+  foreach row [lsort -decreasing -index 1 [class get /Common/host_uri_pool_selector_class]] {
     log local0. "\$row: $row"
+
     if { [string tolower [HTTP::host]] equals [getfield $row " " 1] } {
       if { [string tolower [HTTP::uri]] starts_with [getfield $row " " 2] } {
         pool [getfield $row " " 3]

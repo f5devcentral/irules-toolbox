@@ -1,7 +1,16 @@
-when HTTP_REQUEST {
-  switch -glob [string tolower [HTTP::host][HTTP::uri]] {
-    "some.host.com/singleuri*" {
-      HTTP::respond 301 Location "https://some.other.host.com[string map {"/singleuri" "/anotheruri"} [HTTP::uri]]"
+# Create an F5 iRule that redirects requests from one domain path to another. The iRule should check if the normalized, lowercase combination of host and URI starts with "some.host.com/singleuri", then perform a permanent 301 redirect to "some.other.host.com" while replacing "/singleuri" with "/anotheruri" in the path and preserving any additional path components.
+
+when HTTP_REQUEST priority 500 {
+    # This event triggers when an HTTP request is received by the virtual server
+
+    # Match requests to "some.host.com/singleuri" followed by any characters
+    # Example: "some.host.com/singleuri" or "some.host.com/singleuri/additional/path"
+    if { [string tolower [HTTP::host][HTTP::uri -normalized]] starts_with "some.host.com/singleuri" } {
+        # Perform a permanent (301) redirect to a different host
+        # The string map command replaces "/singleuri" with "/anotheruri" in the original URI
+        # This preserves any path components after "/singleuri" in the redirect
+        # Example: "some.host.com/singleuri/example" redirects to "some.other.host.com/anotheruri/example"
+        HTTP::respond 301 Location "https://some.other.host.com[string map {"/singleuri" "/anotheruri"} [HTTP::uri]]"
     }
-  }
+    # Implicit default case: if the pattern doesn't match, continue normal request processing
 }

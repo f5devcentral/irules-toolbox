@@ -1,11 +1,22 @@
-when HTTP_REQUEST {
-  if { [class match [string tolower [HTTP::uri]] eq "Allowed-URIs" ] }{
-    if { [class match [IP::client_addr] eq "Allowed-IPs" ] }{
-      # Do not interfere (Allowed)
-      return
-    } else {
-      # Not allowed
-      drop
+# Write an F5 iRule that filters HTTP requests based on URI and client IP. The rule should allow requests only if the URI is in an approved list and the client IP is authorized. Use data groups for the allowed URIs and IPs. Drop any request that doesn't meet both criteria. Keep the code concise and include basic comments.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the lowercase URI matches any entry in the "Allowed-URIs" data group
+    if { ![class match -- [string tolower [HTTP::uri]] eq "Allowed-URIs"] } {
+        # If URI is not in the allowed list, exit the iRule without taking action
+        return
     }
-  }
+
+    # Check if the client's IP address matches any entry in the "Allowed-IPs" data group
+    if { [class match -- [IP::client_addr] eq "Allowed-IPs"] } {
+        # If client IP is in the allowed list, exit the iRule without taking action
+        # This allows the request to proceed normally
+        return
+    }
+
+    # If we reach this point, it means:
+    # 1. The URI is in the allowed list
+    # 2. But the client IP is not in the allowed list
+    # Therefore, we drop the request
+    drop
 }

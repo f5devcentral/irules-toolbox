@@ -1,3 +1,16 @@
-when HTTP_REQUEST {
-  HTTP::header replace Host "[HTTP::host]:9000"
+# Create an F5 iRule that modifies the Host header in HTTP requests by adding port 9000. The iRule should extract the hostname from the original Host header, removing any existing port number if present, then replace the original header with a new one in the format "hostname:9000".
+
+when HTTP_REQUEST priority 500 {
+    # Define the target port that should be added to the Host header
+    set port 9000
+    
+    # Extract just the hostname portion from the Host header
+    # getfield splits the Host header at the colon and returns the first part
+    # This removes any existing port number if present
+    set host [getfield [HTTP::host] : 1]
+    
+    # Replace the original Host header with the hostname and our specified port
+    # Format: hostname:port (e.g., example.com:9000)
+    # This ensures requests are routed to the correct service port on the backend
+    HTTP::header replace Host $host:$port
 }

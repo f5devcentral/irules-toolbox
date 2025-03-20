@@ -1,19 +1,36 @@
-when CLIENT_ACCEPTED {
-  # Is client IP address defined in the FE datagroup?
-  if { [class match [IP::client_addr] equals sj01-fe-servers] }{
-    # Log the client IP address:port -> destination IP address:port
-    log local0. "admin request accepted from client: \
-      [IP::client_addr]:[TCP::client_port] -> [IP::local_addr]:[TCP::local_port]"
-  } elseif { [class match [IP::client_addr] equals sj01-strongmail-servers] }{
-      # Client IP address is defined in the strongmail datagroup
-      # Log the client IP address:port -> destination IP address:port
-      log local0. "restricted client request accepted from client: \
-        [IP::client_addr]:[TCP::client_port] -> [IP::local_addr]:[TCP::local_port]"
-  } else {
-      # Request didn't match the conditions for allowing the request
-      # Log the client IP address:port -> destination IP address:port
-      log local0. "unknown request rejected from client: \
-        [IP::client_addr]:[TCP::client_port] -> [IP::local_addr]:[TCP::local_port]"
-      drop
-  }
+# Write an F5 iRule that checks if a client IP is in either of two datagroups (sj01-fe-servers or sj01-strongmail-servers), logs the connection details, and allows access if the IP is found or drops the connection if not.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Store client connection details (IP addresses and ports) for logging and decision making
+    set client_ip [IP::client_addr]
+    set client_port [TCP::client_port]
+    set local_ip [IP::local_addr]
+    set local_port [TCP::local_port]
+
+    # First check: Is the client IP in the 'sj01-fe-servers' datagroup?
+    if { [class match -- $client_ip equals sj01-fe-servers] } {
+        # Client IP is in the 'sj01-fe-servers' datagroup - allow with admin privileges
+        # Log the accepted connection with source and destination details
+        log local0. "admin request accepted from client: $client_ip:$client_port -> $local_ip:$local_port"
+
+        # Exit the iRule processing and allow the connection to proceed
+        return
+    }
+
+    # Second check: Is the client IP in the 'sj01-strongmail-servers' datagroup?
+    if { [class match -- $client_ip equals sj01-strongmail-servers] } {
+        # Client IP is in the 'sj01-strongmail-servers' datagroup - allow with restricted privileges
+        # Log the accepted connection with source and destination details
+        log local0. "restricted client request accepted from client: $client_ip:$client_port -> $local_ip:$local_port"
+
+        # Exit the iRule processing and allow the connection to proceed
+        return
+    }
+
+    # If execution reaches here, the client IP is not in any allowed datagroup
+    # Log the rejected connection with source and destination details
+    log local0. "unknown request rejected from client: $client_ip:$client_port -> $local_ip:$local_port"
+
+    # Terminate the TCP connection immediately
+    drop
 }

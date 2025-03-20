@@ -1,12 +1,13 @@
-when RULE_INIT {
-  set static::lifetime 60
-  set static::requestlimit 10
+when CLIENT_ACCEPTED priority 500 {
+  set LIFETIME 60
+  set REQUEST_LIMIT 10
 }
-when LB_SELECTED {
+when LB_SELECTED priority 500 {
   if { [HTTP::header "User-Agent"] contains "Mozilla" } {
     #Add a table entry with a lifetime in seconds of the value of $lifetime.
-    table add [IP::client_addr] 1 indefinite $static::lifetime
-    if { [table incr [IP::client_addr]] > $static::requestlimit } {
+    table add -- [IP::client_addr] 1 indefinite $LIFETIME
+
+    if { [table incr -- [IP::client_addr]] > $REQUEST_LIMIT } {
       #If the user has surpassed the request limit the pool member is reselected
       log local0. "This server was selected: [LB::server]"
       LB::reselect

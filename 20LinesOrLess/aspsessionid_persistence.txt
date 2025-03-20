@@ -1,10 +1,23 @@
-when HTTP_RESPONSE {
-  if { [HTTP::cookie exists "ASPSESSIONID"] } {
-    persist add uie [HTTP::cookie "ASPSESSIONID"]
-  }
+# Create an F5 iRule that implements cookie-based persistence for ASP applications. The iRule should check for the ASPSESSIONID cookie in HTTP responses, add it to the persistence table when found, and then use that cookie value in subsequent HTTP requests to direct clients back to the same server, ensuring session continuity across multiple requests.
+
+when HTTP_RESPONSE priority 500 {
+    # Check if the ASPSESSIONID cookie exists in the HTTP response
+    # This cookie is used by ASP applications to track user sessions
+    if { !([HTTP::cookie exists "ASPSESSIONID"]) } {
+        # If the cookie exists, add it to the persistence table
+        # This associates the client with a specific server for future requests
+        # The "uie" persistence type is used (Universal Inspection Engine)
+        persist add uie [HTTP::cookie "ASPSESSIONID"]
+    }
 }
-when HTTP_REQUEST {
-  if { [HTTP::cookie exists "ASPSESSIONID"] } {
-    persist uie [HTTP::cookie "ASPSESSIONID"]
-  }
+
+when HTTP_REQUEST priority 500 {
+    # Check if the ASPSESSIONID cookie exists in the HTTP request
+    # This indicates the client has an existing session
+    if { [HTTP::cookie exists "ASPSESSIONID"] } {
+        # Use the cookie value to look up the server in the persistence table
+        # This ensures the client is directed to the same server that handled previous requests
+        # Maintains session state across multiple requests
+        persist uie [HTTP::cookie "ASPSESSIONID"]
+    }
 }

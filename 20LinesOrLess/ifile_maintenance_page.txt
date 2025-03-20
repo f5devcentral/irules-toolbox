@@ -1,21 +1,21 @@
-when HTTP_REQUEST {
-  if { [active_members pool ] < 1] } {
+when HTTP_REQUEST priority 500 {
+  if { [active_members pool] < 1 } {
     log local0. "Server Pool:  [LB::server pool]"
     HTTP::respond 200 content [ifile get f5maint_txt]
-  } else {
-      switch -glob [string tolower[HTTP::uri]] {
-        "/favicon.ico" { HTTP::respond 200 content [ifile get favicon_ico] }
-        "/reset.css" { HTTP::respond 200 content [ifile get reset_css] }
-        "/style_main.css" { HTTP::respond 200 content [ifile get style_main_css] }
-        "/jquery.js"  { HTTP::respond 200 content [ifile get jquery_js] }
-        "/jquery.jfeed.pack.js"  { HTTP::respond 200 content [ifile get jquery.jfeed.pack_js] }
-        "/head.js"  { HTTP::respond 200 content [ifile get head_js] }
-        "/search.js"  { HTTP::respond 200 content [ifile get search_js] }
-        "/image_topbarleft.jpg"  { HTTP::respond 200 content [ifile get image_topbarleft_jpg] }
-        "/image_topbarright.jpg"  { HTTP::respond 200 content [ifile get image_topbarright_jpg] }
-        "/image_navtop.jpg"  { HTTP::respond 200 content [ifile get image_navtop_jpg] }
-        "/logo_main.png"  { HTTP::respond 200 content [ifile get logo_main_png] }
-        default { discard }
-      }
+    return
+  }
+  switch -glob -- [string tolower[HTTP::uri]] {
+    /favicon.ico           { HTTP::respond 200 content [ifile get favicon_ico] }
+    /reset.css             { HTTP::respond 200 content [ifile get reset_css] }
+    /style_main.css        { HTTP::respond 200 content [ifile get style_main_css] }
+    /jquery.js             { HTTP::respond 200 content [ifile get jquery_js] }
+    /jquery.jfeed.pack.js  { HTTP::respond 200 content [ifile get jquery.jfeed.pack_js] }
+    /head.js               { HTTP::respond 200 content [ifile get head_js] }
+    /search.js             { HTTP::respond 200 content [ifile get search_js] }
+    /image_topbarleft.jpg  { HTTP::respond 200 content [ifile get image_topbarleft_jpg] }
+    /image_topbarright.jpg { HTTP::respond 200 content [ifile get image_topbarright_jpg] }
+    /image_navtop.jpg      { HTTP::respond 200 content [ifile get image_navtop_jpg] }
+    /logo_main.png         { HTTP::respond 200 content [ifile get logo_main_png] }
+    default { discard }
   }
 }

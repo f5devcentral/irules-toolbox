@@ -1,6 +1,16 @@
-when HTTP_REQUEST {
-  switch [string tolower [HTTP::host]] {
-    "appa.domain.com" { pool appa_pool }
-    "appb.domain.com" { pool appb_pool }
-  }
+# Create an F5 BIG-IP iRule that routes traffic to different server pools based on the requested domain name.
+
+when HTTP_REQUEST priority 500 {
+    # Convert the HTTP host header to lowercase to ensure case-insensitive matching
+    # This prevents routing issues if users type the domain with mixed case
+    switch -- [string tolower [HTTP::host]] {
+        # If the request is for appa.domain.com, route traffic to the appa_pool
+        "appa.domain.com" { pool appa_pool }
+        
+        # If the request is for appb.domain.com, route traffic to the appb_pool
+        "appb.domain.com" { pool appb_pool }
+        
+        # Implicit default: If the host doesn't match either pattern above,
+        # the request will continue to the default pool configured for the virtual server
+    }
 }

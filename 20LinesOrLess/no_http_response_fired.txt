@@ -1,11 +1,15 @@
-when HTTP_REQUEST {
-    virtual [name of APM VIP]
-}
-when HTTP_RESPONSE {
-    HTTP::header insert Strict-Transport-Security "max-age=31708800"
+# Create an F5 BIG-IP iRule that routes incoming HTTP requests to a specified APM virtual server and adds an HSTS header to all HTTP responses. The rule should have high priority for both request and response handling. For the HSTS header, set it to be valid for one year, include subdomains, and allow preloading.
+
+when HTTP_REQUEST priority 500 {
+    # Route the request to the specified APM (Access Policy Manager) virtual server
+    virtual [name_of_APM_VIP]
 }
 
-# Modern TMOS can use HTTP_RESPONSE_RELEASE instead:
-when HTTP_RESPONSE_RELEASE {
-  HTTP::header insert Strict-Transport-Security "max-age=31708800"
+when HTTP_RESPONSE_RELEASE priority 500 {
+    # Add a Strict-Transport-Security (HSTS) header to the HTTP response
+    # This header instructs the browser to only connect to the site using HTTPS in the future
+    # max-age: how long the browser should remember to use HTTPS (1 year in seconds)
+    # includeSubdomains: apply this rule to all subdomains of the current domain
+    # preload: allow the domain to be included in browsers' preload lists
+    HTTP::header insert Strict-Transport-Security "max-age=31536000; includeSubdomains; preload"
 }

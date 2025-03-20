@@ -1,11 +1,30 @@
-when CLIENT_ACCEPTED {
-  if { [IP::addr [IP::client_addr] equals 10.9.9.0/26] }{
-    snat 1.1.1.1
-  } elseif { [IP::addr [IP::client_addr] equals 10.9.9.65/26] }{
-      snat 2.2.2.2
-  } elseif { [IP::addr [IP::client_addr] equals 10.9.9.128/26] }{
-    snat 3.3.3.3
-  } else {
+# Create an F5 BIG-IP iRule that applies snat based on the client's IP subnet. The rule should assign specific SNAT addresses (1.1.1.1, 2.2.2.2, or 3.3.3.3) to clients from different /26 subnets within the 10.9.9.0 network, while allowing all other clients to use the default routing without SNAT.
+
+when CLIENT_ACCEPTED priority 500 {
+    # This event triggers when a client connection is first established
+
+    # Check if client IP is in the 10.9.9.0/26 subnet (10.9.9.0 - 10.9.9.63)
+    # and apply SNAT using the 1.1.1.1 address for these clients
+    if { [IP::addr [IP::client_addr] equals 10.9.9.0/26] } {
+        snat 1.1.1.1
+        return
+    }
+
+    # Check if client IP is in the 10.9.9.65/26 subnet (10.9.9.64 - 10.9.9.127)
+    # and apply SNAT using the 2.2.2.2 address for these clients
+    if { [IP::addr [IP::client_addr] equals 10.9.9.65/26] } {
+        snat 2.2.2.2
+        return
+    }
+
+    # Check if client IP is in the 10.9.9.128/26 subnet (10.9.9.128 - 10.9.9.191)
+    # and apply SNAT using the 3.3.3.3 address for these clients
+    if { [IP::addr [IP::client_addr] equals 10.9.9.128/26] } {
+        snat 3.3.3.3
+        return
+    }
+
+    # For all other client IP addresses not matching the above subnets,
+    # use the default routing without applying SNAT
     forward
-  }
 }

@@ -1,14 +1,28 @@
-when HTTP_REQUEST {
-  # Check if the client used an SSL cipher
-  if {not ([catch {SSL::cipher version} result]) && $result ne "none"}{
-    # Client did use a cipher
-    log local0. "\$result: $result. Allowing encrypted request."
-    if {[HTTP::path] eq "/"}{
-      HTTP::redirect "https://[getfield [HTTP::host] : 1]/Login.jsp"
+# Create an F5 BIG-IP iRule that enforces HTTPS connections and directs users to a login page. The rule should check if the connection is encrypted by attempting to get the SSL cipher version. For unencrypted connections, log the detection and redirect to the HTTPS version of the Login.jsp page. For encrypted connections, allow the request to proceed but redirect requests for the root path to the Login.jsp page. Include error handling for the SSL cipher check and extract the hostname without port number when constructing redirect URLs.
+
+when HTTP_REQUEST priority 500 {
+    # Try to get the SSL cipher version and catch any errors
+    # This checks if the connection is encrypted (SSL/TLS)
+    if {([catch {SSL::cipher version} result]) || $result eq "none"} {
+        # Log that we detected an unencrypted request
+        log local0. "\: $result. Redirecting unencrypted request."
+
+        # Redirect to HTTPS version of the site, specifically to Login.jsp
+        # getfield extracts the hostname without port number (if any)
+        HTTP::redirect "https://[getfield [HTTP::host] : 1]/Login.jsp"
+
+        # Exit the rule early
+        return
     }
-  } else {
-    # Client did not use a cipher
-    log local0. "\$result: $result. Redirecting unencrypted request."
-     HTTP::redirect "https://[getfield [HTTP::host] : 1]/Login.jsp"
-  }
+
+    # If we reach here, the connection is encrypted
+    # Log that we're allowing the encrypted request
+    log local0. "\: $result. Allowing encrypted request."
+ 
+    # If the request is for the root path "/"
+    if {[HTTP::path] eq "/"} {
+        # Redirect to the Login.jsp page
+        # This ensures users going to the root are sent to the login page
+        HTTP::redirect "https://[getfield [HTTP::host] : 1]/Login.jsp"
+    }
 }

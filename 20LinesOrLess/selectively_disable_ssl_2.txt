@@ -1,9 +1,25 @@
-when HTTP_REQUEST {
-  set my_uri [string tolower [HTTP::uri]]
-  if { $my_uri starts_with "/secure" } {
-    pool ssl__pool
-  } else {
+# Create an F5 BIG-IP iRule that implements selective SSL handling based on URI paths. The rule should maintain end-to-end SSL encryption for requests starting with "/secure" by routing them to an SSL-enabled pool, while implementing SSL offloading for all other requests by disabling server-side SSL and routing them to a static content pool.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the requested URI starts with "/secure"
+    # Convert URI to lowercase first to ensure case-insensitive matching
+    if { [string tolower [HTTP::uri]] starts_with "/secure" } {
+        # For secure paths, use the SSL-enabled pool
+        # This pool is configured to maintain SSL encryption to backend servers
+        pool ssl__pool
+        
+        # Exit the event handler - no need to process further
+        # The default behavior will maintain SSL for the server-side connection
+        return
+    }
+
+    # For all other paths (non-secure URIs):
+    
+    # Disable SSL for the server-side connection
+    # This implements SSL offloading - client uses HTTPS but backend uses HTTP
     SSL::disable serverside
-  pool static_pool
-  }
+    
+    # Direct the request to the static content pool
+    # This pool is optimized for non-secure static content delivery
+    pool static_pool
 }

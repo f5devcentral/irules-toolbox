@@ -1,32 +1,48 @@
-when RULE_INIT {
-  # Log debug to /var/log/ltm? 1=yes, 0=no
-  set static::debug 0
+# Create an F5 iRule that selects backend pools based on URI patterns. The iRule should define a data group name based on the virtual server name, check if the data group exists, search for URI patterns that match the normalized request URI, and direct traffic to the appropriate pool based on the match results, with fallback to a default pool when no match is found.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Enable or disable debug logging (0 = off, 1 = on)
+    set DEBUG 0
+    # Save the VS default pool name before it's changed
+    # This will be used as a fallback if no matching pool is found
+    set default_pool "defpool01"
+
+    # Set the data group name based on the current virtual server name
+    # This allows different virtual servers to use different data groups
+    # Format: "AppVersion" + [virtual server name]
+    set clname "AppVersion[virtual name]"
 }
-when CLIENT_ACCEPTED {
-  # Save the VS default pool name before it's changed
-  set default_pool "defpool01"
 
-  # set the data group name
-  set clname "AppVersion[virtual name]"
-}
+when HTTP_REQUEST priority 500 {
+    # Check if the data group defined in CLIENT_ACCEPTED exists
+    # If it doesn't exist, exit the iRule and use the default pool selection
+    if { ![class exists $clname] } {
+        return
+    }
 
-when HTTP_REQUEST {
-  # if there isn't a data group with the above name, set the pool to default and exit
-  if {[class exists $clname]} {
-
-    # Search the datagroup for a name that starts with the URI
-    set pool_name [class search -value $clname starts_with [HTTP::uri]]
+    # Search the data group for a value that starts with the normalized URI
+    # The data group should contain URI prefixes mapped to pool names
+    # Normalization handles URL encoding and other path manipulations
+    set pool_name [class search -value -- $clname starts_with [HTTP::uri -normalized]]
 
     if { $pool_name eq ""} {
-      # we don't match the context roots in the data class
-      if { $static::debug } { log local0. "fell through to the default pool" }
-      pool $default_pool
-    } else {
-      if { $static::debug } { log local0. "Matched $app_pool" }
-        pool $app_pool
-      }
-    } else {
-      if { $static::debug } { log local0. "Data group $clame not found, using default_pool $default_pool"
+        # No match found in the data group for this URI
+        # Use the default pool that was saved earlier
+        if { $DEBUG } { log local0. "fell through to the default pool" }
         pool $default_pool
+        return
     }
+
+    if {$pool_name == $app_pool} {
+        # The pool name from the data group matches the app_pool variable
+        # Note: There appears to be a reference to $app_pool which isn't defined earlier
+        if { $DEBUG } { log local0. "Matched $app_pool" }
+        pool $app_pool
+        return
+    }
+
+    # This condition handles any other case
+    # Note: There appears to be a typo in the variable name ($clame instead of $clname)
+    if { $DEBUG } { log local0. "Data group $clame not found, using default_pool $default_pool" }
+    pool $default_pool
 }

@@ -1,14 +1,32 @@
-when HTTP_REQUEST {
-  set specialurl 0
-  if { [HTTP::uri] equals "/test.txt" } {
-    set specialurl 1
-  }
-  # ...any other rule elements...
+# Create an F5 BIG-IP iRule that identifies requests for a specific URI ("/test.txt") and applies special handling to the corresponding responses. The rule should determine whether to apply special processing or standard handling.
+
+when HTTP_REQUEST priority 500 {
+    # Initialize a flag to track if the requested URL is special
+    # Default is 0 (false) - not a special URL
+    set specialurl 0
+    
+    # Check if the requested URI exactly matches "/test.txt"
+    # This identifies requests that need special handling
+    if { [string tolower [HTTP::uri]] equals "/test.txt" } {
+        # Set the flag to 1 (true) to mark this as a special URL
+        # This flag will be used in the HTTP_RESPONSE event
+        set specialurl 1
+    }
+    # ...any other rule elements...
 }
-when HTTP_RESPONSE {
-  if { $specialurl = 1 } {
-    # do something
-  } else {
-    # do something else or nothing
-  }
+
+when HTTP_RESPONSE priority 500 {
+    # Check if this response is for a request to the special URL
+    # Using the flag set during the HTTP_REQUEST event
+    if { $specialurl = 1 } {
+        # Apply special handling for responses to "/test.txt"
+        # This could include modifying headers, content, etc.
+        # The specific action is not implemented in this snippet
+        return
+    }
+
+    # Standard handling for all other responses
+    # This section executes only for non-special URLs
+    # Could include default header modifications, logging, etc.
+    # or might do nothing at all
 }

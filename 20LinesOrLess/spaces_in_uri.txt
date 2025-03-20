@@ -1,10 +1,25 @@
-when HTTP_REQUEST {
-  log local0. "[HTTP::uri]"
-  log local0. "[string map {%20 ""} [HTTP::uri]]"
-  log local0. "[string tolower [URI::query [string map {%20 ""} [HTTP::uri]] id]]"
-  if {[matchclass [string tolower [URI::query [string map {%20 ""} [HTTP::uri]] id]] contains $::Portlet_ref]} {
-    log local0. "gotcha"
-  } else {
-      log local0. "not match"
-  }
+# Create an F5 iRule that processes HTTP requests by removing spaces from URIs, extracting the 'id' parameter, converting it to lowercase, and checking if it matches any entry in the '/Common/Portlet_ref' data group. The iRule should log each step of the process and take appropriate action based on whether a match is found.
+
+when HTTP_REQUEST priority 500 {
+    # Log the original URI to local0 facility
+    log local0. "[HTTP::uri]"
+
+    # Log the URI with all spaces (%20) removed
+    log local0. "[set uri_nospace [string map {%20 ""} [HTTP::uri]]]"
+
+    # Extract the 'id' parameter from the URI query string (after removing spaces),
+    # convert it to lowercase, and log it
+    log local0. "[set uri_nospace_lowercase [string tolower [URI::query ${uri_nospace} id]]]"
+
+    # Check if the lowercase 'id' parameter (with spaces removed) matches any entry
+    # in the data group '/Common/Portlet_ref'
+    if { [class match -- ${uri_nospace_lowercase} contains /Common/Portlet_ref] } {
+        # If there's a match, log "gotcha" and exit the iRule to continue normal processing
+        log local0. "gotcha"
+        return
+    }
+
+    # If no match is found, log "not match" and continue processing
+    # (potentially allowing other iRules or default behavior to handle the request)
+    log local0. "not match"
 }

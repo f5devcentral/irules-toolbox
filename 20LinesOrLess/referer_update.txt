@@ -1,14 +1,27 @@
- when HTTP_REQUEST {
+# Create an F5 BIG-IP iRule that logs HTTP request details and conditionally modifies the Referer header. The rule should log the client IP, port, HTTP method, host, URI, and Referer header for each request. When a custom header named "MyHeader" exists, the rule should update the Referer header by replacing HTTP with HTTPS, log the change, and apply the modification. Log the final Referer header value after any modifications from the first handler, allowing verification of the changes.
 
-    log local0. "[IP::client_addr]:[TCP::client_port]: New [HTTP::method] request to [HTTP::host][HTTP::uri]\
-       with Referer [HTTP::header Referer]"
+when HTTP_REQUEST priority 500 {
+    # Log details about the incoming request including client IP, port, HTTP method, host, URI, and Referer header
+    log local0. "[IP::client_addr]:[TCP::client_port]: New [HTTP::method] request to [HTTP::host][HTTP::uri] with Referer [HTTP::header Referer]"
 
-    if {[HTTP::header exists "MyHeader"]} {
-       log local0. "[IP::client_addr]:[TCP::client_port]: Updating Referer to\
-          [string map -nocase {http:// https://} [HTTP::header Referer]"
-       HTTP::header replace Referer "[string map -nocase {http:// https://} [HTTP::header Referer]"
+    # Check if a custom header named "MyHeader" does NOT exist in the request
+    if { ![HTTP::header exists "MyHeader"] } {
+        # If MyHeader doesn't exist, exit the rule without modifying anything
+        return
     }
- }
- when HTTP_REQUEST priority 501 {
+
+    # If MyHeader exists, modify the Referer header by replacing http:// with https:// (case-insensitive)
+    set referer [string map -nocase {http:// https://} [HTTP::header Referer]]
+
+    # Log the updated Referer value
+    log local0. "[IP::client_addr]:[TCP::client_port]: Updating Referer to ${referer}"
+
+    # Replace the original Referer header with the modified version
+    HTTP::header replace Referer "${referer}"
+}
+
+when HTTP_REQUEST priority 501 {
+    # Secondary event handler with slightly lower priority (501)
+    # This logs the current Referer header value after any modifications from the priority 500 handler
     log local0. "[IP::client_addr]:[TCP::client_port] (501): Current Referer [HTTP::header Referer]"
- }
+}

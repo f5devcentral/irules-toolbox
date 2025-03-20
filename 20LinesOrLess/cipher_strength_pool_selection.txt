@@ -1,8 +1,17 @@
-when HTTP_REQUEST {
-  log local0. "[IP::remote_addr]: SSL cipher strength is [SSL::cipher bits]"
-  if { [SSL::cipher bits] < 128 } {
-    pool weak_encryption_pool
-  } else {
-      pool strong_encryption_pool
-  }
+# Write an F5 iRule that logs client IP and SSL cipher strength, then routes traffic to different pools based on whether the encryption is strong (128+ bits) or weak (less than 128 bits).
+
+when HTTP_REQUEST priority 500 {
+    # Log the client's IP address and the SSL cipher strength used for the connection
+    log local0. "[IP::remote_addr]: SSL cipher strength is [SSL::cipher bits]"
+
+    # Check if the SSL cipher strength is less than 128 bits
+    if { [SSL::cipher bits] < 128 } {
+        # If weak encryption (less than 128 bits) is used, direct traffic to the weak encryption pool
+        pool weak_encryption_pool
+
+        return
+    }
+
+    # If strong encryption (128 bits or greater) is used, direct traffic to the strong encryption pool
+    pool strong_encryption_pool
 }

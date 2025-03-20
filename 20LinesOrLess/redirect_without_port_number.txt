@@ -1,7 +1,15 @@
-when HTTP_REQUEST {
-  # Check if Host contains a colon
-  if {[HTTP::host] contains ":"}{
-    # Redirect client to requested host minus the port and preserve the original URI
+# Create an F5 BIG-IP iRule that redirects HTTP requests containing port numbers in the Host header to the same URL without the port number and using HTTPS.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the Host header contains a colon (indicating a port number is present)
+    # If there's no colon in the Host header, exit the rule without taking any action
+    if { !([HTTP::host] contains ":") } {
+        return
+    }
+
+    # If we reach here, the Host header contains a port number
+    # Extract the hostname without the port using getfield (splits at ":" and takes first part)
+    # Combine with the original URI path to preserve the requested resource
+    # Redirect the client to the same URL but without the port number, using HTTPS
     HTTP::redirect "https://[getfield [HTTP::host] ":" 1][HTTP::uri]"
-  }
 }

@@ -1,8 +1,22 @@
-when CLIENT_ACCEPTED {
-  SSL::disable serverside
+# Create an F5 BIG-IP iRule that implements selective SSL offloading for specific paths. The rule check if the requested path matches entries in a data group configured for standard HTTP, and enable SSL only for paths not found in that data group.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Initially disable SSL for all server-side connections
+    # This makes all backend connections use HTTP by default
+    SSL::disable serverside
 }
-when HTTP_REQUEST {
-  if { ![class match [string tolower [HTTP::path]] starts_with standard_http_dg] } {
+
+when HTTP_REQUEST priority 500 {
+    # Check if the requested path (converted to lowercase) matches any entries
+    # in the "standard_http_dg" data group that are configured to use HTTP
+    if { [class match -- [string tolower [HTTP::path]] starts_with standard_http_dg] } {
+        # If the path matches, return without enabling SSL
+        # These paths will continue using HTTP to the backend servers
+        return
+    }
+
+    # For all paths not matching the standard_http_dg data group,
+    # enable SSL for the server-side connection
+    # This ensures these paths use HTTPS to the backend servers
     SSL::enable serverside
-  }
 }

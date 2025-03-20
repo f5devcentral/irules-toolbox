@@ -1,18 +1,45 @@
-when CLIENT_ACCEPTED {
-  TCP::collect
+# Create an F5 BIG-IP iRule that intercepts Oracle database connection requests and replaces SID parameters with SERVICE_NAME parameters.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Begin collecting TCP payload data when a client connection is established
+    # This allows us to inspect and potentially modify the data
+    TCP::collect
 }
-when CLIENT_DATA {
-  set sid_match 0
-  if { [TCP::payload] contains "CONNECT_DATA=" } {
-    set sid_match 1
-    log local0. "original payload = [TCP::payload]"
-    set service_name "SERVICE_NAME=MYSERVICENAME"
-    if { [regsub -all -nocase "SID=MYSID" [TCP::payload] "$service_name" newdata] } {
-      TCP::payload replace 0 [TCP::payload length] ""
-      TCP::payload replace 0 0 $newdata
-      log local0. "replaced payload = $newdata"
+
+when CLIENT_DATA priority 500 {
+    # Initialize a flag to track if we found the SID pattern
+    set sid_match 0
+    
+    # Check if the TCP payload contains "CONNECT_DATA=" which indicates an Oracle database connection request
+    if { [TCP::payload] contains "CONNECT_DATA=" } {
+        # Set the flag to indicate we found a match
+        set sid_match 1
+        
+        # Log the original payload for debugging/auditing
+        log local0. "original payload = [TCP::payload]"
+        
+        # Define the service name we want to use instead of the SID
+        set service_name "SERVICE_NAME=MYSERVICENAME"
+        
+        # Try to replace "SID=MYSID" with "SERVICE_NAME=MYSERVICENAME" in the payload
+        # The -all flag replaces all occurrences, -nocase makes it case-insensitive
+        # If successful, the modified payload is stored in the variable "newdata"
+        if { [regsub -all -nocase -- "SID=MYSID" [TCP::payload] "$service_name" newdata] } {
+            # Clear the original payload
+            TCP::payload replace 0 [TCP::payload length] ""
+            
+            # Insert the modified payload
+            TCP::payload replace 0 0 $newdata
+            
+            # Log the modified payload for debugging/auditing
+            log local0. "replaced payload = $newdata"
+        }
     }
-  }
-  TCP::release
-  TCP::collect
+    
+    # Release the collected data to continue processing
+    TCP::release
+    
+    # Start collecting the next chunk of data
+    # This allows the iRule to process subsequent packets in the connection
+    TCP::collect
 }

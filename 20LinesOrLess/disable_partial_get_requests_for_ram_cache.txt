@@ -1,5 +1,5 @@
-when CACHE_RESPONSE {
-  if { [HTTP::uri] ends_with ".pdf" } {
+when CACHE_RESPONSE priority 500 {
+  if { [HTTP::uri -normalized] ends_with ".pdf" } {
     HTTP::header remove "Accept-Ranges"
   }
 }

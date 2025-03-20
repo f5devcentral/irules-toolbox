@@ -1,10 +1,25 @@
-when CLIENT_ACCEPTED {
-  if {[active_members yourpoolname] == 0 } {
-    TCP::collect
-  }
+# Create an F5 iRule that provides a custom response when all pool members are down. The iRule should check if the specified pool has any active members, and if not, collect client data, replace the payload with the string "down", and forward the modified traffic to a specific node that handles service unavailability notifications.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Check if there are any active members in the specified pool
+    # If all pool members are down (active count is 0), begin collecting client data
+    if { [active_members yourpoolname] == 0 } {
+        # Start collecting client data for inspection/modification
+        # This allows us to intercept and modify the client request
+        TCP::collect
+    }
 }
-when CLIENT_DATA {
-  TCP::payload replace 0 [TCP::payload length] "down"
-  node 10.10.10.1 12000
-  TCP::release
+
+when CLIENT_DATA priority 500 {
+    # Replace the entire client payload with the string "down"
+    # This notifies the client that the service is unavailable
+    TCP::payload replace 0 [TCP::payload length] "down"
+    
+    # Forward the modified traffic to a specific node (IP:port)
+    # This node (10.10.10.1:12000) handles the "service down" responses
+    node 10.10.10.1 12000
+    
+    # Release the collected/modified data to continue processing
+    # This allows the modified payload to be sent to the specified node
+    TCP::release
 }

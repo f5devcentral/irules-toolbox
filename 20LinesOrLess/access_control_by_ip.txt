@@ -1,11 +1,30 @@
-when CLIENT_ACCEPTED  {
-  if { [matchclass [IP::client_addr] equals $::trustedAddresses] }{
-    #Uncomment the line below to turn on logging.
-    #log local0.  "Valid client IP: [IP::client_addr] - forwarding traffic"
-    forward
-  } else {
-    #Uncomment the line below to turn on logging.
-    #log local0. "Invalid client IP: [IP::client_addr] - discarding"
-    discard
-  }
+# Create an F5 iRule that implements IP-based access control. The iRule should check if the client's IP address matches any entry in a predefined "trustedAddresses" data group, allow connections from trusted IPs by using the forward command, and silently drop connections from all other IP addresses using the discard command.
+
+when CLIENT_ACCEPTED priority 500  {
+    # This event triggers as soon as a client connection is accepted by the virtual server
+    # The iRule will evaluate the client's IP address against a predefined list of trusted IPs
+    
+    # Check if the client's IP address matches any entry in the "trustedAddresses" data group
+    # The data group should be configured separately and contain all allowed IP addresses
+    # class match -- [IP::client_addr] equals $trustedAddresses returns true if the IP is in the list
+    if { [class match -- [IP::client_addr] equals $trustedAddresses] } {
+        # If the client IP is in the trusted addresses list, allow the connection
+        
+        #Uncomment the line below to turn on logging.
+        #log local0.  "Valid client IP: [IP::client_addr] - forwarding traffic"
+        
+        # The forward command allows the connection to proceed to its destination
+        # This permits access for authorized IP addresses
+        forward
+    } else {
+        # If the client IP is not in the trusted addresses list, block the connection
+        
+        #Uncomment the line below to turn on logging.
+        #log local0. "Invalid client IP: [IP::client_addr] - discarding"
+        
+        # The discard command silently drops the connection without sending any response
+        # This prevents unauthorized IPs from accessing protected resources
+        discard
+        event disable all
+    }
 }

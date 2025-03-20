@@ -1,6 +1,6 @@
-when HTTP_REQUEST {
+when HTTP_REQUEST priority 500 {
   # Parse the fist character in the path
-  switch -glob [HTTP::path] {
+  switch -glob -- [HTTP::path] {
     "/[a-cA-C]*" {
       pool test1
     }

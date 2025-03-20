@@ -1,9 +1,9 @@
-when CLIENT_ACCEPTED {
+when CLIENT_ACCEPTED priority 500 {
   if { [IP::addr [IP::remote_addr] equals 10.2.0.0/255.255.0.0 ] } {
     log local0. "Node IP address is: [IP::remote_addr] and sent to SMTP_clients_from_10.2"
     pool smtp_clients_from_10.2
   } else {
-      log local0. "Node IP address is: [IP::remote_addr] and sent to SMTP_clients_from_elsewhere"
-      pool SMTP_clients_from_elsewhere
+    log local0. "Node IP address is: [IP::remote_addr] and sent to SMTP_clients_from_elsewhere"
+    pool SMTP_clients_from_elsewhere
   }
 }

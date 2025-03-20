@@ -1,25 +1,24 @@
-when RULE_INIT {
-  set static::webShowLog 1
-  set static::webLogFrom "x.x.x.x"
-}
-when CLIENT_ACCEPTED {
+when CLIENT_ACCEPTED  priority 500{
+  set WEB_SHOW_LOG 1
+  set WEB_LOG_FROM "x.x.x.x"
+
   set webLogMsg "Client Port: [TCP::client_port]"
 }
-when HTTP_REQUEST {
+when HTTP_REQUEST priority 500 {
   append webLogMsg "HTTP URI: [HTTP::uri]"
 }
-when HTTP_RESPONSE {
-  if {($static::webShowLog) && ([IP::client_addr] equals $static::webLogFrom) && ([info exists webLogMsg]) } {
+when HTTP_RESPONSE priority 500 {
+  if {($WEB_SHOW_LOG) && ([IP::client_addr] equals $WEB_LOG_FROM) && ([info exists webLogMsg]) } {
     if {[HTTP::header "Content-Length"] > 2000} {
       HTTP::collect 2000
     } else {
-        HTTP::collect [HTTP::header "Content-Length"]
+      HTTP::collect [HTTP::header "Content-Length"]
     }
   }
 }
-when HTTP_RESPONSE_DATA {
-  regexp -indices {(?i)<body[^>]*>} [HTTP::payload] BodyLocation
+when HTTP_RESPONSE_DATA priority 500 {
+  regexp -indices {(?i)<body[^>]*>} -- [HTTP::payload] BodyLocation
   HTTP::payload replace [lindex $BodyLocation 1] 1 [concat {><div style="border: 1px solid blue;">} $webLogMsg {</div>}]
-  unset webLogMsg
+  unset -nocomplain -- webLogMsg
   HTTP::release
 }

@@ -1,9 +1,26 @@
-when CLIENT_ACCEPTED {
-  log local0. ""
-  TCP::respond "OK"
-  TCP::close
-  event disable all
+# Create an F5 iRule that demonstrates event handling behavior by responding with "OK" to client connections, closing the connection with TCP::close, and disabling all events. The iRule should include a CLIENT_CLOSED event handler that will never execute because the event disable all command prevents subsequent events from triggering.
+
+when CLIENT_ACCEPTED priority 500 {
+    # Log an empty message to local0 facility when a client connection is accepted
+    log local0. ""
+
+    # Send a simple "OK" response to the client
+    TCP::respond "OK"
+
+    # Close the TCP connection from the F5 side
+    TCP::close
+
+    # Disable all further events for this connection
+    # Once this command executes, no further events (including CLIENT_CLOSED) will fire
+    # TCP::close initiates connection termination, but the CLIENT_CLOSED event
+    # will not trigger because it has been explicitly disabled
+    event disable all
 }
-when CLIENT_CLOSED {
-  log local0. ""
+
+when CLIENT_CLOSED priority 500 {
+    # Log an empty message when the client connection is fully closed
+    # This event will NOT fire due to the "event disable all" in CLIENT_ACCEPTED
+    # The event disable all command prevents any subsequent events from triggering,
+    # so this logging will never occur
+    log local0. ""
 }

@@ -1,19 +1,46 @@
-when SIP_REQUEST {
-        set originator_ip [IP::remote_addr]
-        node [IP::local_addr]:[TCP::local_port]
+# Create an F5 BIG-IP iRule that implements SIP topology hiding for a forward proxy. The rule should store the client's original IP address, set consistent node routing, replace client domain information with the SNAT IP in outgoing SIP requests, and restore the original client information in SIP responses to maintain proper bidirectional communication while hiding internal network topology.
+
+when SIP_REQUEST priority 500 {
+    # Store the client's IP address for later use in response handling
+    set originator_ip [IP::remote_addr]
+    
+    # Set the node to use for this SIP session
+    # This ensures consistent routing using the local IP and port
+    node [IP::local_addr]:[TCP::local_port]
 }
-when SIP_REQUEST_SEND {
-        set snat_ip [serverside {IP::local_addr}]
-        set ip_map [list [findstr [SIP::header From] "@" 1 ">"] $snat_ip]
-        SIP::header remove from
-        SIP::header insert from "[string map $ip_map  [SIP::header "From"]]"
-        SIP::header remove via
-        SIP::header insert via [string map $ip_map  [SIP::header "Via"]]
+
+when SIP_REQUEST_SEND priority 500 {
+    # Capture the SNAT IP address that will be used for the server-side connection
+    # This is the IP that will appear to the SIP server as the source
+    set snat_ip [serverside {IP::local_addr}]
+    
+    # Create a mapping list to replace the client's domain in From header with the SNAT IP
+    # This hides the original client's network information
+    set ip_map [list [findstr [SIP::header From] "@" 1 ">"] $snat_ip]
+    
+    # Remove and reinsert the From header with the SNAT IP replacing the client domain
+    # This implements topology hiding for the client's identity
+    SIP::header remove from
+    SIP::header insert from "[string map $ip_map [SIP::header "From"]]"
+    
+    # Remove and reinsert the Via header with the SNAT IP replacing the client information
+    # This hides the network path information from the SIP server
+    SIP::header remove via
+    SIP::header insert via [string map $ip_map [SIP::header "Via"]]
 }
-when SIP_RESPONSE {
-        set ip_map [list $snat_ip $originator_ip]
-        SIP::header remove from
-        SIP::header insert from "[string map $ip_map  [SIP::header "From"]]"
-        SIP::header remove via
-        SIP::header insert via [string map $ip_map [SIP::header "Via"]]
+
+when SIP_RESPONSE priority 500 {
+    # Create a reverse mapping to restore the original client IP in responses
+    # This ensures the response can be properly routed back to the client
+    set ip_map [list $snat_ip $originator_ip]
+    
+    # Remove and reinsert the From header with the original client information
+    # This restores the client's identity in the response
+    SIP::header remove from
+    SIP::header insert from "[string map $ip_map [SIP::header "From"]]"
+    
+    # Remove and reinsert the Via header with the original client information
+    # This restores the proper routing information for the response
+    SIP::header remove via
+    SIP::header insert via [string map $ip_map [SIP::header "Via"]]
 }

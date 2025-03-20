@@ -1,8 +1,8 @@
-when HTTP_REQUEST {
-  if { ([string match {[A-Z]} [HTTP::uri]] and [[HTTP::path] ends_with ".aspx"])} {
-    set hostname [string tolower [HTTP::host]]
-    set uriname [string tolower [HTTP::uri]]
-    log local0. "Request is $hostname$uriname"
-    HTTP::redirect "http://$hostname$uriname"
-  }
+when HTTP_REQUEST priority 500 {
+    if { ([string match {[A-Z]} [HTTP::uri]]) and ([[HTTP::path] ends_with ".aspx"])} {
+        set hostname [string tolower [HTTP::host]]
+        set uriname [string tolower [HTTP::uri]]
+        log local0. "Request is ${hostname}${uriname}"
+        HTTP::redirect "http://${hostname}${uriname}"
+    }
 }

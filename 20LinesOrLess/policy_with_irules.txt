@@ -1,7 +1,17 @@
+# Create an F5 BIG-IP iRule that checks for HTTP reply targets in an LTM policy. If a reply target exists, log a message, disable further event processing, and exit. The rule should run for every HTTP request with the highest priority of 1. Make sure the rule prevents conflicts between policy-based redirects and other iRule actions.
+
 when HTTP_REQUEST priority 1 {
-    if {[POLICY::targets http-reply] } {
-        log local0. "LTM Policy action contains redirect. Disabling event"
-        event disable
+    # Check if the LTM policy does NOT have a target action for HTTP replies
+    if { ![POLICY::targets http-reply] } {
+        # If there's no HTTP reply target, exit the iRule
         return
     }
+
+    # If we reach here, it means there IS an HTTP reply target in the policy
+    # Log a message indicating that a redirect action was found in the policy
+    log local0. "LTM Policy action contains redirect. Disabling event"
+    # Disable further processing of this event
+    event disable
+    # Exit the iRule
+    return
 }

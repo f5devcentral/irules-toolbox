@@ -1,7 +1,14 @@
-when HTTP_REQUEST {
-  if { [HTTP::method] equals "POST" } {
-    CACHE::disable
-  } else {
-    CACHE::enable
-  }
+# Create an F5 iRule that controls HTTP caching behavior based on the request method. The iRule should disable caching for POST requests since they typically modify data, while enabling caching for all other request methods like GET and HEAD that are generally read-only operations.
+
+when HTTP_REQUEST priority 500 {
+    # Check if the HTTP request method is POST
+    if { [HTTP::method] equals "POST" } {
+        # Disable caching for POST requests
+        # POST requests typically modify data and shouldn't be cached
+        CACHE::disable
+    } else {
+        # Enable caching for all other request methods (GET, HEAD, etc.)
+        # These methods are typically read-only and safe to cache
+        CACHE::enable
+    }
 }
